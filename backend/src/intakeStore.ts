@@ -1,13 +1,23 @@
 import { randomUUID } from "node:crypto";
 
+export type SessionStage = "verification" | "intake";
+
 export interface EmergencyFlag {
   flagged: true;
   reason: string;
   source: "model" | "keyword_scan";
 }
 
+export interface RescheduleRequest {
+  reason?: string;
+}
+
 export interface IntakeRecord {
   sessionId: string;
+  stage: SessionStage;
+  verified: boolean;
+  verificationAttempts: number;
+  rescheduleRequested?: RescheduleRequest;
   chiefComplaint: string;
   onset?: string;
   location?: string;
@@ -30,6 +40,9 @@ export function createSession(): string {
   const sessionId = randomUUID();
   sessions.set(sessionId, {
     sessionId,
+    stage: "verification",
+    verified: false,
+    verificationAttempts: 0,
     chiefComplaint: "headache",
     finalized: false,
     updatedAt: new Date().toISOString(),

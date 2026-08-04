@@ -25,6 +25,19 @@ function App() {
         </div>
       )}
 
+      {intakeRecord?.rescheduleRequested && (
+        <div className="reschedule-banner" role="status">
+          <strong>Reschedule requested.</strong>{" "}
+          {intakeRecord.rescheduleRequested.reason || "The patient asked to be called back another time."}
+        </div>
+      )}
+
+      {isConnected && !intakeRecord?.rescheduleRequested && (
+        <p className="stage-indicator">
+          {intakeRecord?.stage === "intake" ? "Intake in progress" : "Verifying identity…"}
+        </p>
+      )}
+
       <button
         type="button"
         className={isConnected ? "call-button call-button--active" : "call-button"}

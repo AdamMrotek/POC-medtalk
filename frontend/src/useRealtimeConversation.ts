@@ -10,8 +10,18 @@ export interface TranscriptTurn {
   text: string;
 }
 
+export type SessionStage = "verification" | "intake";
+
+export interface RescheduleRequest {
+  reason?: string;
+}
+
 export interface IntakeRecord {
   sessionId: string;
+  stage: SessionStage;
+  verified: boolean;
+  verificationAttempts: number;
+  rescheduleRequested?: RescheduleRequest;
   chiefComplaint: string;
   onset?: string;
   location?: string;
@@ -25,6 +35,11 @@ export interface IntakeRecord {
   summary?: string;
   finalized: boolean;
   updatedAt: string;
+}
+
+interface StageConfig {
+  instructions: string;
+  tools: Array<Record<string, unknown>>;
 }
 
 export interface EmergencyState {
@@ -63,6 +78,7 @@ export function useRealtimeConversation() {
   const audioElRef = useRef<HTMLAudioElement | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const assistantTurnIdByItemId = useRef<Map<string, string>>(new Map());
+  const nextStageConfigRef = useRef<StageConfig | null>(null);
 
   const appendTurn = useCallback((turn: TranscriptTurn) => {
     setTranscript((prev) => [...prev, turn]);
@@ -101,6 +117,23 @@ export function useRealtimeConversation() {
     [applyRecord]
   );
 
+  const handoffToIntakeStage = useCallback(() => {
+    const dc = dcRef.current;
+    const nextStage = nextStageConfigRef.current;
+    if (!dc || dc.readyState !== "open" || !nextStage) return;
+    dc.send(
+      JSON.stringify({
+        type: "session.update",
+        session: {
+          type: "realtime",
+          instructions: nextStage.instructions,
+          tools: nextStage.tools,
+          tool_choice: "auto",
+        },
+      })
+    );
+  }, []);
+
   const handleFunctionCall = useCallback(
     async (name: string, argsJson: string, callId: string) => {
       const toolTurnId = crypto.randomUUID();
@@ -127,7 +160,15 @@ export function useRealtimeConversation() {
 
         applyRecord(resultPayload as IntakeRecord);
 
-        if (name === "update_intake") {
+        if (name === "verify_identity") {
+          const verified = Boolean((resultPayload as { verified?: boolean }).verified);
+          resultText = verified ? "Identity verified" : "Identity verification failed";
+          if (verified) {
+            handoffToIntakeStage();
+          }
+        } else if (name === "request_reschedule") {
+          resultText = "Reschedule requested";
+        } else if (name === "update_intake") {
           resultText = `Recorded: ${Object.keys(args).join(", ") || "(no fields)"}`;
         } else if (name === "flag_emergency") {
           resultText = `⚠️ Emergency flagged — ${String(args.reason ?? "")}`;
@@ -158,7 +199,7 @@ export function useRealtimeConversation() {
         dc.send(JSON.stringify({ type: "response.create" }));
       }
     },
-    [appendTurn, applyRecord, updateTurn]
+    [appendTurn, applyRecord, handoffToIntakeStage, updateTurn]
   );
 
   const handleServerEvent = useCallback(
@@ -237,6 +278,7 @@ export function useRealtimeConversation() {
 
     sessionIdRef.current = null;
     assistantTurnIdByItemId.current.clear();
+    nextStageConfigRef.current = null;
   }, []);
 
   const stop = useCallback(() => {
@@ -260,6 +302,7 @@ export function useRealtimeConversation() {
       }
       const ephemeralKey: string = sessionData.value;
       sessionIdRef.current = sessionData.sessionId;
+      nextStageConfigRef.current = sessionData.nextStage ?? null;
 
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
