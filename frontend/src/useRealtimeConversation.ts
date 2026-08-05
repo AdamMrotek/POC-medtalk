@@ -53,6 +53,44 @@ interface RealtimeEvent {
   [key: string]: unknown;
 }
 
+export interface DataChannelLogEntry {
+  id: string;
+  direction: "in" | "out";
+  type: string;
+  payload: unknown;
+  timestamp: number;
+  /** For collapsed delta streaks: number of chunks folded into this entry. */
+  count?: number;
+  /** Distinct delta subtypes folded into a streak entry (e.g. output_audio, output_audio_transcript). */
+  deltaTypes?: string[];
+}
+
+const MAX_DC_LOG_ENTRIES = 300;
+
+// Streaming responses fire a flood of small ".delta" events (audio bytes, transcript
+// text, function-call args, ...), often interleaved. They're noise individually, so any
+// consecutive run of delta events — regardless of exact subtype — folds into one running
+// counter card until a non-delta event breaks the streak.
+const isDeltaEventType = (type: string) => type.endsWith(".delta");
+const MAX_LOGGED_STRING_LENGTH = 200;
+
+function truncateLargeStrings(value: unknown): unknown {
+  if (typeof value === "string") {
+    return value.length > MAX_LOGGED_STRING_LENGTH
+      ? `${value.slice(0, MAX_LOGGED_STRING_LENGTH)}… (${value.length} chars)`
+      : value;
+  }
+  if (Array.isArray(value)) {
+    return value.map(truncateLargeStrings);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [k, truncateLargeStrings(v)])
+    );
+  }
+  return value;
+}
+
 export const INTAKE_FIELD_LABELS: Record<string, string> = {
   onset: "Onset",
   location: "Location",
@@ -71,6 +109,7 @@ export function useRealtimeConversation() {
   const [error, setError] = useState<string | null>(null);
   const [intakeRecord, setIntakeRecord] = useState<IntakeRecord | null>(null);
   const [emergency, setEmergency] = useState<EmergencyState | null>(null);
+  const [dataChannelLog, setDataChannelLog] = useState<DataChannelLogEntry[]>([]);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const dcRef = useRef<RTCDataChannel | null>(null);
@@ -87,6 +126,63 @@ export function useRealtimeConversation() {
   const updateTurn = useCallback((id: string, text: string) => {
     setTranscript((prev) => prev.map((t) => (t.id === id ? { ...t, text } : t)));
   }, []);
+
+  const logDataChannelEvent = useCallback((direction: "in" | "out", payload: unknown) => {
+    const type =
+      typeof payload === "object" && payload && "type" in payload
+        ? String((payload as { type: unknown }).type)
+        : "unknown";
+    setDataChannelLog((prev) => {
+      if (isDeltaEventType(type)) {
+        const last = prev[prev.length - 1];
+        if (last && last.count !== undefined && last.direction === direction) {
+          const updated = [...prev];
+          const deltaTypes = last.deltaTypes ?? [];
+          updated[updated.length - 1] = {
+            ...last,
+            count: last.count + 1,
+            timestamp: Date.now(),
+            deltaTypes: deltaTypes.includes(type) ? deltaTypes : [...deltaTypes, type],
+          };
+          return updated;
+        }
+        const next = [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            direction,
+            type: "delta stream",
+            payload: undefined,
+            timestamp: Date.now(),
+            count: 1,
+            deltaTypes: [type],
+          },
+        ];
+        return next.length > MAX_DC_LOG_ENTRIES ? next.slice(next.length - MAX_DC_LOG_ENTRIES) : next;
+      }
+      const next = [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          direction,
+          type,
+          payload: truncateLargeStrings(payload),
+          timestamp: Date.now(),
+        },
+      ];
+      return next.length > MAX_DC_LOG_ENTRIES ? next.slice(next.length - MAX_DC_LOG_ENTRIES) : next;
+    });
+  }, []);
+
+  const sendEvent = useCallback(
+    (payload: Record<string, unknown>) => {
+      const dc = dcRef.current;
+      if (!dc || dc.readyState !== "open") return;
+      dc.send(JSON.stringify(payload));
+      logDataChannelEvent("out", payload);
+    },
+    [logDataChannelEvent]
+  );
 
   const applyRecord = useCallback((record: IntakeRecord | undefined | null) => {
     if (!record) return;
@@ -118,21 +214,18 @@ export function useRealtimeConversation() {
   );
 
   const handoffToIntakeStage = useCallback(() => {
-    const dc = dcRef.current;
     const nextStage = nextStageConfigRef.current;
-    if (!dc || dc.readyState !== "open" || !nextStage) return;
-    dc.send(
-      JSON.stringify({
-        type: "session.update",
-        session: {
-          type: "realtime",
-          instructions: nextStage.instructions,
-          tools: nextStage.tools,
-          tool_choice: "auto",
-        },
-      })
-    );
-  }, []);
+    if (!nextStage) return;
+    sendEvent({
+      type: "session.update",
+      session: {
+        type: "realtime",
+        instructions: nextStage.instructions,
+        tools: nextStage.tools,
+        tool_choice: "auto",
+      },
+    });
+  }, [sendEvent]);
 
   const handleFunctionCall = useCallback(
     async (name: string, argsJson: string, callId: string) => {
@@ -184,22 +277,17 @@ export function useRealtimeConversation() {
 
       updateTurn(toolTurnId, resultText);
 
-      const dc = dcRef.current;
-      if (dc && dc.readyState === "open") {
-        dc.send(
-          JSON.stringify({
-            type: "conversation.item.create",
-            item: {
-              type: "function_call_output",
-              call_id: callId,
-              output: JSON.stringify(resultPayload),
-            },
-          })
-        );
-        dc.send(JSON.stringify({ type: "response.create" }));
-      }
+      sendEvent({
+        type: "conversation.item.create",
+        item: {
+          type: "function_call_output",
+          call_id: callId,
+          output: JSON.stringify(resultPayload),
+        },
+      });
+      sendEvent({ type: "response.create" });
     },
-    [appendTurn, applyRecord, handoffToIntakeStage, updateTurn]
+    [appendTurn, applyRecord, handoffToIntakeStage, sendEvent, updateTurn]
   );
 
   const handleServerEvent = useCallback(
@@ -292,6 +380,7 @@ export function useRealtimeConversation() {
     setTranscript([]);
     setIntakeRecord(null);
     setEmergency(null);
+    setDataChannelLog([]);
     assistantTurnIdByItemId.current.clear();
 
     try {
@@ -322,7 +411,9 @@ export function useRealtimeConversation() {
       dcRef.current = dc;
       dc.addEventListener("message", (e) => {
         try {
-          handleServerEvent(JSON.parse(e.data));
+          const parsed = JSON.parse(e.data);
+          logDataChannelEvent("in", parsed);
+          handleServerEvent(parsed);
         } catch {
           // ignore malformed events
         }
@@ -354,5 +445,5 @@ export function useRealtimeConversation() {
     }
   }, [cleanup, handleServerEvent]);
 
-  return { connectionState, transcript, error, intakeRecord, emergency, start, stop };
+  return { connectionState, transcript, error, intakeRecord, emergency, dataChannelLog, start, stop };
 }

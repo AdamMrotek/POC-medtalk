@@ -2,7 +2,7 @@ import "./App.css";
 import { INTAKE_FIELD_LABELS, useRealtimeConversation } from "./useRealtimeConversation";
 
 function App() {
-  const { connectionState, transcript, error, intakeRecord, emergency, start, stop } =
+  const { connectionState, transcript, error, intakeRecord, emergency, dataChannelLog, start, stop } =
     useRealtimeConversation();
 
   const isConnected = connectionState === "connected";
@@ -81,6 +81,37 @@ function App() {
           )}
         </div>
       </div>
+
+      <details className="datachannel-panel" open>
+        <summary>
+          Data channel events <span className="datachannel-count">({dataChannelLog.length})</span>
+        </summary>
+        <div className="datachannel-log">
+          {dataChannelLog.length === 0 && (
+            <p className="datachannel-empty">Raw events sent/received over the WebRTC data channel will appear here.</p>
+          )}
+          {dataChannelLog.map((entry) =>
+            entry.count !== undefined ? (
+              <div key={entry.id} className={`dc-entry dc-entry--${entry.direction} dc-entry--stream`}>
+                <span className="dc-entry-direction">{entry.direction === "out" ? "→ sent" : "← received"}</span>
+                <span className="dc-entry-type">
+                  streaming delta{entry.deltaTypes && entry.deltaTypes.length > 0 ? ` (${entry.deltaTypes.join(", ")})` : ""}
+                </span>
+                <span className="dc-entry-count">×{entry.count}</span>
+              </div>
+            ) : (
+              <details key={entry.id} className={`dc-entry dc-entry--${entry.direction}`}>
+                <summary className="dc-entry-header">
+                  <span className="dc-entry-direction">{entry.direction === "out" ? "→ sent" : "← received"}</span>
+                  <span className="dc-entry-type">{entry.type}</span>
+                  <span className="dc-entry-time">{new Date(entry.timestamp).toLocaleTimeString()}</span>
+                </summary>
+                <pre className="dc-entry-payload">{JSON.stringify(entry.payload, null, 2)}</pre>
+              </details>
+            )
+          )}
+        </div>
+      </details>
     </div>
   );
 }

@@ -197,3 +197,111 @@
   opacity: 0.6;
   letter-spacing: 0.05em;
 }
+
+.datachannel-panel {
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.datachannel-panel summary {
+  cursor: pointer;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+  user-select: none;
+}
+
+.datachannel-count {
+  opacity: 0.6;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.datachannel-log {
+  margin-top: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.78em;
+}
+
+.datachannel-empty {
+  opacity: 0.6;
+  font-style: italic;
+  margin: 0;
+}
+
+.dc-entry {
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(128, 128, 128, 0.08);
+  border-left: 3px solid rgba(128, 128, 128, 0.4);
+}
+
+.dc-entry--out {
+  border-left-color: #2563eb;
+}
+
+.dc-entry--in {
+  border-left-color: #16a34a;
+}
+
+.dc-entry-header {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  cursor: pointer;
+  list-style: none;
+}
+
+.dc-entry-header::-webkit-details-marker {
+  display: none;
+}
+
+.dc-entry[open] > .dc-entry-header {
+  margin-bottom: 6px;
+}
+
+.dc-entry--stream {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  opacity: 0.75;
+}
+
+.dc-entry-direction {
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.dc-entry-type {
+  opacity: 0.9;
+}
+
+.dc-entry-time {
+  margin-left: auto;
+  opacity: 0.5;
+}
+
+.dc-entry-count {
+  margin-left: auto;
+  font-weight: 600;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+.dc-entry-payload {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  opacity: 0.85;
+  max-height: 240px;
+  overflow-y: auto;
+}
