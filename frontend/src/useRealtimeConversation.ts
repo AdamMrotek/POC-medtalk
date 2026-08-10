@@ -418,7 +418,10 @@ export function useRealtimeConversation() {
           // ignore malformed events
         }
       });
-      dc.addEventListener("open", () => setConnectionState("connected"));
+      dc.addEventListener("open", () => {
+        setConnectionState("connected");
+        sendEvent({ type: "response.create" });
+      });
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -443,7 +446,7 @@ export function useRealtimeConversation() {
       setError((err as Error).message);
       setConnectionState("error");
     }
-  }, [cleanup, handleServerEvent]);
+  }, [cleanup, handleServerEvent, sendEvent]);
 
   return { connectionState, transcript, error, intakeRecord, emergency, dataChannelLog, start, stop };
 }
