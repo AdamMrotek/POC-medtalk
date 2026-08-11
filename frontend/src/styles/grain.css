@@ -1,0 +1,123 @@
+/* ============================================================================
+   GRAIN + GRADIENT PRIMITIVES
+   ----------------------------------------------------------------------------
+   The signature texture: a soft multi-stop mesh gradient with film grain sat on
+   top of it. Two rules keep it from turning into noise-for-its-own-sake:
+
+   1. The grain tile is a FIXED pixel size and never scales with its host.
+      Grain that stretches reads as a blurry image; grain that tiles at a
+      constant size reads as film. That is the whole trick.
+   2. Grain is applied to ambient and emphatic surfaces only — the page
+      backdrop, the primary action, status banners. Never
+      behind sustained reading (panel bodies, transcripts, the log), because
+      luminance noise under small text costs legibility.
+
+   Applying grain to an element requires `position: relative` and
+   `isolation: isolate` on the host, so the blend mode cannot leak upward into
+   whatever is painted behind it.
+   ============================================================================ */
+
+:root {
+  /* feTurbulence rasterised to a tiling square. `stitchTiles` is what makes the
+     seams disappear when it repeats. Desaturated so it moves luminance only and
+     never shifts the hue underneath it.
+
+     Tuned subtle on purpose: fine specks (high baseFrequency) and no contrast
+     stretch, so the texture reads as paper tooth rather than as film grain. If
+     you want it to bite harder, the effective dial is NOT opacity — pushing
+     that alone just lays down a flat grey veil. Drop baseFrequency toward 0.55
+     for chunkier specks, and add an feComponentTransfer with a linear slope
+     around 2 to push grains toward near-black and near-white. */
+  --grain-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E");
+
+  /* Denser tile for small surfaces (buttons, pills) where the standard grain
+     would show only a handful of specks and read as dirt rather than texture. */
+  --grain-texture-fine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='90' height='90' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+/* -------------------------------------------------------------- page backdrop
+   Fixed behind all content: mesh on one layer, grain on another, both isolated
+   inside the body's stacking context so the blend never touches real UI. */
+
+body {
+  isolation: isolate;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+body::before {
+  z-index: -2;
+  background-image: var(--mesh-ambient);
+}
+
+body::after {
+  z-index: -1;
+  background-image: var(--grain-texture);
+  background-size: var(--grain-size) var(--grain-size);
+  background-repeat: repeat;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: var(--grain-blend);
+}
+
+/* ------------------------------------------------------------ grain utility
+   Composable overlay for any surface. Host must set `position: relative`,
+   `isolation: isolate` and usually `overflow: hidden` so the tile is clipped to
+   the border radius. */
+
+.u-grain {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.u-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image: var(--grain-texture-fine);
+  background-size: 90px 90px;
+  opacity: var(--grain-surface-opacity);
+  /* Overlay on a saturated fill keeps the hue while roughening the surface;
+     multiply/screen would flatten it toward black or white. */
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* Content inside a grained surface has to be lifted above the ::after tile. */
+.u-grain > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* ------------------------------------------------------------------- fills */
+
+.u-gradient-accent {
+  background-image: var(--mesh-accent);
+  color: var(--accent-contrast);
+}
+
+.u-gradient-danger {
+  background-image: var(--mesh-danger);
+  color: var(--danger-contrast);
+}
+
+/* Faint corner wash for large containers. No grain — this sits behind reading
+   material, so it stays a flat tint. */
+.u-mesh-panel {
+  background-image: var(--mesh-panel);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  body::before,
+  body::after,
+  .u-grain::after {
+    display: none;
+  }
+}

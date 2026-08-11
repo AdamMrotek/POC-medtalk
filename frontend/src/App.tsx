@@ -1,94 +1,112 @@
 import "./App.css";
-import { INTAKE_FIELD_LABELS, useRealtimeConversation } from "./useRealtimeConversation";
+import { ConnectionPill } from "./ConnectionPill";
+import { ConversationTimeline } from "./ConversationTimeline";
+import { IntakePanel } from "./IntakePanel";
+import { useRealtimeConversation } from "./useRealtimeConversation";
 
 function App() {
-  const { connectionState, transcript, error, intakeRecord, emergency, dataChannelLog, start, stop } =
-    useRealtimeConversation();
+  const {
+    connectionState,
+    transcript,
+    error,
+    intakeRecord,
+    emergency,
+    dataChannelLog,
+    stage,
+    start,
+    stop,
+  } = useRealtimeConversation();
 
-  const isConnected = connectionState === "connected";
+  // "ending" still holds a live connection — the button stays a hang-up so the patient can
+  // cut the farewell short rather than being told to start over.
+  const isConnected = connectionState === "connected" || connectionState === "ending";
   const isConnecting = connectionState === "connecting";
 
-  const intakeRecordFields = intakeRecord as unknown as Record<string, unknown> | null;
-  const filledFields = intakeRecordFields
-    ? Object.entries(INTAKE_FIELD_LABELS).filter(([key]) => Boolean(intakeRecordFields[key]))
-    : [];
-
   return (
-    <div className="app">
-      <h1>Headache Intake Assistant</h1>
-      <p className="subtitle">Not a diagnosis. Collects information for your care team to review before your visit.</p>
+    <div className="app-shell">
+      <header className="app-header">
+        <span className="brand">Headache Intake Assistant</span>
+        <ConnectionPill state={connectionState} />
+      </header>
 
-      {emergency && (
-        <div className="emergency-banner" role="alert">
-          <strong>Seek emergency care now.</strong> {emergency.reason} If this is a medical emergency, call 911 or go
-          to the nearest emergency room.
-        </div>
-      )}
-
-      {intakeRecord?.rescheduleRequested && (
-        <div className="reschedule-banner" role="status">
-          <strong>Reschedule requested.</strong>{" "}
-          {intakeRecord.rescheduleRequested.reason || "The patient asked to be called back another time."}
-        </div>
-      )}
-
-      {isConnected && !intakeRecord?.rescheduleRequested && (
-        <p className="stage-indicator">
-          {intakeRecord?.stage === "intake" ? "Intake in progress" : "Verifying identity…"}
+      <main className="hero">
+        <h1 className="hero__title">Tell us about your headaches</h1>
+        <p className="hero__lead">
+          A short guided conversation that collects your history for your care team to review before
+          your visit.
         </p>
+
+        <div className="hero__actions">
+          <button
+            type="button"
+            className={`btn btn--lg ${isConnected ? "btn--danger" : "btn--primary"}`}
+            onClick={isConnected ? stop : start}
+            disabled={isConnecting}
+          >
+            {isConnecting
+              ? "Connecting…"
+              : isConnected
+                ? "End conversation"
+                : connectionState === "ended"
+                  ? "Start a new conversation"
+                  : "Start conversation"}
+          </button>
+        </div>
+
+        <p className="hero__note">Not a diagnosis · Reviewed by your care team</p>
+      </main>
+
+      {(emergency || intakeRecord?.rescheduleRequested || error) && (
+        <div className="banner-stack">
+          {emergency && (
+            <div className="banner banner--danger" role="alert">
+              <span>
+                <strong>Seek emergency care now.</strong> {emergency.reason} If this is a medical
+                emergency, call 911 or go to the nearest emergency room.
+              </span>
+            </div>
+          )}
+
+          {intakeRecord?.rescheduleRequested && (
+            <div className="banner banner--warning" role="status">
+              <span>
+                <strong>Reschedule requested.</strong>{" "}
+                {intakeRecord.rescheduleRequested.reason ||
+                  "The patient asked to be called back another time."}
+              </span>
+            </div>
+          )}
+
+          {error && (
+            <div className="banner banner--error" role="alert">
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
       )}
-
-      <button
-        type="button"
-        className={isConnected ? "call-button call-button--active" : "call-button"}
-        onClick={isConnected ? stop : start}
-        disabled={isConnecting}
-      >
-        {isConnecting ? "Connecting…" : isConnected ? "Stop Conversation" : "Start Conversation"}
-      </button>
-
-      {error && <p className="error">{error}</p>}
 
       <div className="panels">
-        <div className="transcript">
-          {transcript.length === 0 && <p className="transcript-empty">Transcript will appear here.</p>}
-          {transcript.map((turn) => (
-            <div key={turn.id} className={`turn turn--${turn.role}`}>
-              <span className="turn-role">{turn.role}</span>
-              <span className="turn-text">{turn.text}</span>
-            </div>
-          ))}
-        </div>
+        <ConversationTimeline
+          transcript={transcript}
+          stage={stage}
+          connectionState={connectionState}
+          intakeRecord={intakeRecord}
+          emergencyReason={emergency?.reason}
+        />
 
-        <div className="intake-panel">
-          <h2>Intake Summary</h2>
-          {filledFields.length === 0 && !intakeRecord?.finalized && (
-            <p className="intake-empty">Fields will fill in as the conversation progresses.</p>
-          )}
-          <dl className="intake-fields">
-            {filledFields.map(([key, label]) => (
-              <div className="intake-field" key={key}>
-                <dt>{label}</dt>
-                <dd>{String(intakeRecordFields?.[key])}</dd>
-              </div>
-            ))}
-          </dl>
-          {intakeRecord?.finalized && (
-            <div className="intake-summary">
-              <h3>Summary for care team</h3>
-              <p>{intakeRecord.summary}</p>
-            </div>
-          )}
-        </div>
+        <IntakePanel intakeRecord={intakeRecord} />
       </div>
 
-      <details className="datachannel-panel" open>
-        <summary>
-          Data channel events <span className="datachannel-count">({dataChannelLog.length})</span>
+      <details className="devlog">
+        <summary className="devlog__summary">
+          <span className="eyebrow">Data channel events</span>
+          <span className="devlog__count">{dataChannelLog.length}</span>
         </summary>
-        <div className="datachannel-log">
+        <div className="devlog__log scroll-area">
           {dataChannelLog.length === 0 && (
-            <p className="datachannel-empty">Raw events sent/received over the WebRTC data channel will appear here.</p>
+            <p className="devlog__empty">
+              Raw events sent/received over the WebRTC data channel will appear here.
+            </p>
           )}
           {dataChannelLog.map((entry) =>
             entry.count !== undefined ? (

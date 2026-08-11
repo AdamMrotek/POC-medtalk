@@ -1,0 +1,473 @@
+/* ============================================================================
+   BASE + COMPONENT PRIMITIVES
+   ----------------------------------------------------------------------------
+   Element defaults first, then the small set of reusable pieces every screen is
+   built from: .btn, .panel, .pill, .banner, .eyebrow, .field, .scroll-area.
+   Feature CSS composes these; it does not restyle them.
+   ============================================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background-color: var(--bg);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-normal);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  text-wrap: balance;
+}
+
+/* The display face carries h1 and h2 only. h3 is 15px — small enough that the
+   body face is the more legible choice, and it inherits it. */
+h1,
+h2 {
+  font-family: var(--font-display);
+}
+
+/* Black, not the --weight-medium the other headings inherit. Phenomena is a
+   narrow face, so at display size the extra weight buys presence without
+   buying width — h1 gets heavier while the line stays the same length. */
+h1 {
+  font-size: var(--text-display);
+  font-weight: var(--weight-black);
+  letter-spacing: var(--tracking-display);
+}
+
+h2 {
+  font-size: var(--text-lg);
+  letter-spacing: var(--tracking-tight);
+}
+
+h3 {
+  font-size: var(--text-base);
+  letter-spacing: var(--tracking-tight);
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--accent-text);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+code,
+kbd,
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+pre {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+
+/* One focus treatment across the whole app. Anything that removes it owes a
+   replacement — there is no bare `outline: none` in this codebase. */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text-primary);
+}
+
+/* --------------------------------------------------------------- scrollbars
+   Thin and neutral, so a scrolling transcript does not sprout a heavy grey bar
+   down the middle of the layout. */
+.scroll-area {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+  overscroll-behavior: contain;
+}
+
+.scroll-area::-webkit-scrollbar {
+  width: 10px;
+}
+
+.scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-area::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+/* ============================================================ TYPE HELPERS */
+
+/* Uppercase micro-label above a heading or beside a field. */
+.eyebrow {
+  display: inline-block;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  color: var(--text-tertiary);
+}
+
+.text-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.measure {
+  max-width: var(--measure);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ================================================================= BUTTONS
+   .btn is the shape and behaviour; a variant supplies the colour. */
+
+.btn {
+  --btn-height: 2.5rem;
+  --btn-padding: 0 var(--space-5);
+
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--btn-height);
+  padding: var(--btn-padding);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-black);
+  /* Buttons are the one place the display face runs at body size. Phenomena's
+     counters are narrow and Black closes them further, so the label opens out
+     rather than sitting at the 0em the sans face wants — without this the
+     lowercase e/a/o start to fill in at 13px. */
+  letter-spacing: var(--tracking-wide);
+  white-space: nowrap;
+  cursor: pointer;
+  overflow: hidden;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.btn--lg {
+  --btn-height: 3.25rem;
+  --btn-padding: 0 var(--space-8);
+  font-size: var(--text-base);
+}
+
+.btn--sm {
+  --btn-height: 2rem;
+  --btn-padding: 0 var(--space-3);
+  font-size: var(--text-xs);
+}
+
+/* Primary: the lightened brand tricolour. Exactly one of these is on screen at
+   a time — it is how you find the thing to press. The fill is pale, so a
+   hairline and a cast shadow do the work a saturated fill used to do; without
+   the border its white midpoint melts into a light page. */
+.btn--primary {
+  background-image: var(--mesh-accent);
+  color: var(--accent-contrast);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-accent);
+}
+
+.btn--primary:hover:not(:disabled) {
+  box-shadow: var(--shadow-accent), 0 0 0 4px var(--accent-soft);
+}
+
+.btn--danger {
+  background-image: var(--mesh-danger);
+  color: var(--danger-contrast);
+  box-shadow: var(--shadow-danger);
+}
+
+.btn--danger:hover:not(:disabled) {
+  box-shadow: var(--shadow-danger), 0 0 0 4px var(--danger-soft);
+}
+
+.btn--secondary {
+  background-color: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background-color: var(--surface-sunken);
+}
+
+.btn--ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background-color: var(--surface-inset);
+  color: var(--text-primary);
+}
+
+/* Grain overlay for the gradient variants only. */
+.btn--primary::after,
+.btn--danger::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--grain-texture-fine);
+  background-size: 90px 90px;
+  opacity: var(--grain-surface-opacity);
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* ================================================================== PANELS */
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background-color: var(--surface);
+  background-image: var(--mesh-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm), var(--highlight-inset);
+}
+
+.panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.panel__body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-5);
+}
+
+/* =================================================================== PILLS
+   Status chips. Colour is carried by a --pill-color hook so a variant is one
+   declaration rather than three. */
+
+.pill {
+  --pill-color: var(--text-tertiary);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.25rem var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-wide);
+  color: var(--pill-color);
+  white-space: nowrap;
+}
+
+.pill--accent {
+  --pill-color: var(--accent-text);
+  border-color: var(--accent-border);
+  background-color: var(--accent-soft);
+}
+
+.pill--success {
+  --pill-color: var(--success-text);
+  border-color: var(--success-border);
+  background-color: var(--success-soft);
+}
+
+.pill--danger {
+  --pill-color: var(--danger-text);
+  border-color: var(--danger-border);
+  background-color: var(--danger-soft);
+}
+
+.pill--warning {
+  --pill-color: var(--warning-text);
+  border-color: var(--warning-border);
+  background-color: var(--warning-soft);
+}
+
+.pill__dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+/* Slow breathing dot for live states. Motion is the only thing distinguishing
+   "connecting" from "connected" at a glance, so it earns its place. */
+.pill__dot--pulse {
+  animation: pulse-soft 2s var(--ease-in-out) infinite;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+}
+
+/* ================================================================= BANNERS
+   Full-width interruptions. Danger gets the grain gradient because it must win
+   against everything else on the page; warning stays a flat tint so the two
+   are never confused at a glance. */
+
+.banner {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.banner strong {
+  font-weight: var(--weight-semibold);
+}
+
+.banner--danger {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-image: var(--mesh-danger);
+  color: var(--danger-contrast);
+  box-shadow: var(--shadow-danger);
+}
+
+.banner--danger::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--grain-texture-fine);
+  background-size: 90px 90px;
+  opacity: var(--grain-surface-opacity);
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.banner--warning {
+  background-color: var(--warning-soft);
+  border-color: var(--warning-border);
+  color: var(--text-primary);
+}
+
+.banner--error {
+  background-color: var(--danger-soft);
+  border-color: var(--danger-border);
+  color: var(--danger-text);
+}
+
+/* ================================================================== FIELDS
+   Label-over-value pairs, used by the intake notes panel. */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.field__label {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  color: var(--text-faint);
+}
+
+.field__value {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+/* ================================================================== MOTION */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

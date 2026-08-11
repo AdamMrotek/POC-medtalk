@@ -1,65 +1,65 @@
-import { getRecord, updateRecord, type SessionStage } from "../intakeStore.js";
+import {
+  INTAKE_FIELDS,
+  INTAKE_FIELD_KEYS,
+  isToolAllowed,
+  redFlagToolDescription,
+  type ConversationEvent,
+  type ConversationState,
+  type IntakeRecord,
+  type ToolName,
+} from "@threepio/shared";
 
-export interface ToolDefinition {
-  name: string;
-  description: string;
-  stage: SessionStage;
-  parameters: Record<string, unknown>;
-  handler: (args: Record<string, unknown>, sessionId: string) => Promise<unknown> | unknown;
+/**
+ * What a tool wants to happen. Handlers are pure: they read the current record and
+ * describe the change, but never touch the store. `index.ts` applies the event through
+ * `applyEvent`, which is what keeps state transitions in exactly one place.
+ */
+export interface ToolOutcome {
+  /** State transition to apply, if any. */
+  event?: ConversationEvent;
+  /** Field updates to merge into the record. */
+  fields?: Partial<Omit<IntakeRecord, "state" | "history">>;
+  /** Payload returned to the model as the function-call output. */
+  result?: Record<string, unknown>;
 }
 
-const MAX_VERIFICATION_ATTEMPTS = 3;
+export interface ToolDefinition {
+  name: ToolName;
+  description: string;
+  parameters: Record<string, unknown>;
+  handler: (args: Record<string, unknown>, record: IntakeRecord) => ToolOutcome;
+}
+
+export const MAX_VERIFICATION_ATTEMPTS = 3;
 
 function lastDigits(phone: string, count: number): string {
   return phone.replace(/\D/g, "").slice(-count);
 }
 
-const intakeFieldProperties = {
-  onset: {
-    type: "string",
-    description: "When and how the headache started, e.g. 'sudden, 2 hours ago' or 'gradual over the past day'.",
-  },
-  location: {
-    type: "string",
-    description: "Where the pain is located, e.g. 'right temple', 'whole head', 'back of head'.",
-  },
-  character: {
-    type: "string",
-    description: "What the pain feels like, e.g. 'throbbing', 'sharp', 'pressure'.",
-  },
-  severity: {
-    type: "string",
-    description: "Pain severity, ideally on a 0-10 scale.",
-  },
-  duration: {
-    type: "string",
-    description: "How long the headache or each episode lasts.",
-  },
-  timing: {
-    type: "string",
-    description: "Frequency/pattern, and whether this is the worst headache the patient has ever had.",
-  },
-  aggravatingFactors: {
-    type: "string",
-    description: "What makes it worse: light, noise, movement, straining, etc.",
-  },
-  alleviatingFactors: {
-    type: "string",
-    description: "What makes it better: rest, dark room, medication, etc.",
-  },
-  associatedSymptoms: {
-    type: "string",
-    description:
-      "Other symptoms alongside the headache: nausea, vomiting, visual changes, fever, neck stiffness, weakness, numbness, confusion, etc.",
-  },
-};
+const intakeFieldProperties = Object.fromEntries(
+  INTAKE_FIELDS.map((field) => [
+    field.key,
+    { type: "string", description: field.promptDescription },
+  ])
+);
 
-export const tools: Record<string, ToolDefinition> = {
+/** Drops anything the model sent that isn't a known intake field. */
+function pickIntakeFields(args: Record<string, unknown>): Record<string, string> {
+  const picked: Record<string, string> = {};
+  for (const key of INTAKE_FIELD_KEYS) {
+    const value = args[key];
+    if (typeof value === "string" && value.trim()) {
+      picked[key] = value.trim();
+    }
+  }
+  return picked;
+}
+
+export const tools: Record<ToolName, ToolDefinition> = {
   verify_identity: {
     name: "verify_identity",
     description:
       "Verify the caller's identity using their date of birth and the last 3 digits of the phone number on file, before discussing any medical information or starting intake questions.",
-    stage: "verification",
     parameters: {
       type: "object",
       properties: {
@@ -74,9 +74,12 @@ export const tools: Record<string, ToolDefinition> = {
       },
       required: ["dateOfBirth", "phoneLast3"],
     },
-    handler: (args, sessionId) => {
-      const record = getRecord(sessionId);
-      if (!record) throw new Error(`Unknown session "${sessionId}"`);
+    handler: (args, record) => {
+      // Belt-and-braces: the state gate already refuses this tool once the session is
+      // locked, since `locked` is a terminal state that lists no tools.
+      if (record.locked) {
+        return { result: { verified: false, locked: true } };
+      }
 
       const expectedDob = (process.env.DEMO_PATIENT_DOB ?? "").trim();
       const expectedPhone = process.env.DEMO_PATIENT_PHONE ?? "";
@@ -85,20 +88,36 @@ export const tools: Record<string, ToolDefinition> = {
         String(args.phoneLast3 ?? "").trim() === lastDigits(expectedPhone, 3);
 
       if (matches) {
-        return updateRecord(sessionId, { verified: true, stage: "intake" });
+        return {
+          event: "identity_verified",
+          fields: { verified: true },
+          result: { verified: true, locked: false },
+        };
       }
 
       const verificationAttempts = record.verificationAttempts + 1;
-      const locked = verificationAttempts >= MAX_VERIFICATION_ATTEMPTS;
-      const updated = updateRecord(sessionId, { verificationAttempts });
-      return { ...updated, verified: false, locked };
+      if (verificationAttempts >= MAX_VERIFICATION_ATTEMPTS) {
+        return {
+          event: "verification_locked",
+          fields: { verificationAttempts, locked: true },
+          result: { verified: false, locked: true },
+        };
+      }
+      return {
+        fields: { verificationAttempts },
+        result: {
+          verified: false,
+          locked: false,
+          attemptsRemaining: MAX_VERIFICATION_ATTEMPTS - verificationAttempts,
+        },
+      };
     },
   },
+
   request_reschedule: {
     name: "request_reschedule",
     description:
       "Call this if the patient indicates now isn't a good time and wants to reschedule, instead of continuing with identity verification or intake.",
-    stage: "verification",
     parameters: {
       type: "object",
       properties: {
@@ -109,31 +128,33 @@ export const tools: Record<string, ToolDefinition> = {
       },
       required: [],
     },
-    handler: (args, sessionId) => {
-      return updateRecord(sessionId, {
+    handler: (args) => ({
+      event: "reschedule_requested",
+      fields: {
         rescheduleRequested: { reason: args.reason ? String(args.reason) : undefined },
-      });
-    },
+      },
+      result: { rescheduled: true },
+    }),
   },
+
   update_intake: {
     name: "update_intake",
     description:
       "Record or update structured headache intake fields as the patient answers questions. Call this after every new piece of information, even a partial answer.",
-    stage: "intake",
     parameters: {
       type: "object",
       properties: intakeFieldProperties,
       required: [],
     },
-    handler: (args, sessionId) => {
-      return updateRecord(sessionId, args as Record<string, string>);
+    handler: (args) => {
+      const fields = pickIntakeFields(args);
+      return { fields, result: { recorded: Object.keys(fields) } };
     },
   },
+
   flag_emergency: {
     name: "flag_emergency",
-    description:
-      "Call this immediately, interrupting normal intake, if the patient reports any red-flag symptom: thunderclap/sudden severe onset, \"worst headache of my life\", fever with neck stiffness, weakness/numbness/confusion/slurred speech, vision loss, head injury, new onset after age 50, or pregnancy. Do not wait to finish the questionnaire.",
-    stage: "intake",
+    description: redFlagToolDescription(),
     parameters: {
       type: "object",
       properties: {
@@ -144,17 +165,24 @@ export const tools: Record<string, ToolDefinition> = {
       },
       required: ["reason"],
     },
-    handler: (args, sessionId) => {
-      return updateRecord(sessionId, {
-        emergency: { flagged: true, reason: String(args.reason ?? "Red flag reported"), source: "model" },
-      });
-    },
+    handler: (args) => ({
+      event: "red_flag",
+      fields: {
+        emergency: {
+          flagged: true,
+          id: null,
+          reason: String(args.reason ?? "Red flag reported"),
+          source: "model",
+        },
+      },
+      result: { escalated: true },
+    }),
   },
+
   finalize_intake: {
     name: "finalize_intake",
     description:
       "Call once enough intake fields have been gathered, or the conversation is ending, to close out the session with a short clinician-facing summary.",
-    stage: "intake",
     parameters: {
       type: "object",
       properties: {
@@ -165,15 +193,22 @@ export const tools: Record<string, ToolDefinition> = {
       },
       required: ["summary"],
     },
-    handler: (args, sessionId) => {
-      return updateRecord(sessionId, { finalized: true, summary: String(args.summary ?? "") });
-    },
+    handler: (args) => ({
+      event: "intake_finalized",
+      fields: { finalized: true, summary: String(args.summary ?? "") },
+      result: { finalized: true },
+    }),
   },
 };
 
-export function toRealtimeToolSchemas(stage: SessionStage) {
+export function isToolName(name: string): name is ToolName {
+  return name in tools;
+}
+
+/** The tool schemas the model should be given while in `state`. */
+export function toRealtimeToolSchemas(state: ConversationState) {
   return Object.values(tools)
-    .filter((tool) => tool.stage === stage)
+    .filter((tool) => isToolAllowed(tool.name, state))
     .map((tool) => ({
       type: "function" as const,
       name: tool.name,

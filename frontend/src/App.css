@@ -1,259 +1,520 @@
-.app {
-  max-width: 960px;
+/* ============================================================================
+   APPLICATION LAYOUT
+   ----------------------------------------------------------------------------
+   Feature CSS only. Everything here composes the primitives in styles/base.css
+   and reads exclusively from the semantic tokens in styles/tokens.css — there
+   are no literal colours below this line.
+   ============================================================================ */
+
+.app-shell {
+  width: 100%;
+  max-width: var(--shell-width);
   margin: 0 auto;
-  padding: 32px 20px;
+  padding: var(--space-6) var(--space-6) var(--space-16);
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  min-height: 100vh;
+  gap: var(--space-8);
 }
 
-.subtitle {
-  margin: -12px 0 0;
-  text-align: center;
-  opacity: 0.7;
-  font-size: 0.9em;
-}
-
-.emergency-banner {
-  background: #dc2626;
-  color: white;
-  padding: 14px 18px;
-  border-radius: 10px;
-  line-height: 1.4;
-}
-
-.reschedule-banner {
-  background: #f59e0b;
-  color: white;
-  padding: 14px 18px;
-  border-radius: 10px;
-  line-height: 1.4;
-}
-
-.stage-indicator {
-  text-align: center;
-  margin: -8px 0 0;
-  opacity: 0.7;
-  font-size: 0.85em;
-}
-
-.call-button {
-  align-self: center;
-  font-size: 16px;
-  padding: 12px 28px;
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background: #2563eb;
-  color: white;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.call-button:hover:not(:disabled) {
-  background: #1d4ed8;
-}
-
-.call-button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.call-button--active {
-  background: #dc2626;
-}
-
-.call-button--active:hover:not(:disabled) {
-  background: #b91c1c;
-}
-
-.error {
-  color: #dc2626;
-  text-align: center;
-}
-
-.panels {
-  display: grid;
-  grid-template-columns: 1.3fr 1fr;
-  gap: 16px;
-  align-items: start;
-}
-
-@media (max-width: 720px) {
-  .panels {
-    grid-template-columns: 1fr;
+@media (max-width: 640px) {
+  .app-shell {
+    padding: var(--space-4) var(--space-4) var(--space-12);
+    gap: var(--space-6);
   }
 }
 
-.transcript {
+/* ================================================================== HEADER */
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-faint);
+}
+
+/* There is no logo mark — the type is the mark. That puts the whole burden of
+   the lockup on the face, which is why this is the one place in the app that
+   takes the display face at its bold weight: at 17px, Phenomena Regular is too
+   quiet to read as a brand rather than as a stray line of header text. */
+.brand {
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* When the row runs out of width, the wordmark is the one that yields: it has an
+   ellipsis, and the pill is live connection state that must stay readable in
+   full. Without this the pill shrinks too and "Conversation ended" wraps. */
+.app-header > .pill {
+  flex: none;
+}
+
+@media (max-width: 640px) {
+  .brand {
+    font-size: var(--text-base);
+  }
+}
+
+/* ==================================================================== HERO */
+
+.hero {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 12px;
-  padding: 16px;
-  min-height: 300px;
-  max-height: 60vh;
-  overflow-y: auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-8) 0 var(--space-4);
+  text-align: center;
 }
 
-.intake-panel {
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 12px;
-  padding: 16px;
-  min-height: 300px;
+.hero__title {
+  max-width: 18ch;
 }
 
-.intake-panel h2 {
-  margin-top: 0;
-  font-size: 1em;
+.hero__lead {
+  max-width: 52ch;
+  font-size: var(--text-md);
+  line-height: var(--leading-snug);
+  color: var(--text-secondary);
+}
+
+.hero__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+/* Standing disclaimer. Deliberately quiet — it is necessary, but it is not what
+   the patient is here to read. Uses --text-tertiary rather than --text-faint
+   because it is the only small text in the app sitting directly on the grained
+   backdrop, and grain adds local luminance variance that a flat contrast ratio
+   does not capture. Cheap headroom; keep it even at low grain settings. */
+.hero__note {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  letter-spacing: var(--tracking-wide);
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding: var(--space-4) 0 0;
+  }
+}
+
+/* ================================================================= BANNERS */
+
+.banner-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ================================================================== PANELS */
+
+.panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+/* Both panels share one height so the layout does not reflow every time a turn
+   lands; each body scrolls internally instead. */
+.panels > .panel {
+  height: clamp(380px, 58vh, 640px);
+}
+
+@media (max-width: 860px) {
+  .panels {
+    grid-template-columns: 1fr;
+  }
+
+  .panels > .panel {
+    height: auto;
+    max-height: 70vh;
+  }
+}
+
+/* ======================================================= CONVERSATION PANEL */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  scroll-behavior: smooth;
+}
+
+.timeline--empty {
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-6);
+  text-align: center;
+}
+
+.timeline-preview {
+  align-self: center;
+  text-align: left;
+}
+
+.timeline-empty-note {
+  max-width: 44ch;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+/* ------------------------------------------------------------------- stages
+   Each stage is a rail + dot on the left and a collapsible block on the right.
+   --stage-accent is the single hook a variant overrides; the dot, the eyebrow
+   and the active status pill all read from it. */
+
+.stage {
+  --stage-accent: var(--text-faint);
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  column-gap: var(--space-3);
+}
+
+/* Both blocks are pinned to column 2. Without this, auto-placement drops the
+   body into the free cell under the rail — a 20px track — and every turn
+   collapses to one word per line. */
+.stage-header,
+.stage-body {
+  grid-column: 2;
+}
+
+.stage--verification {
+  --stage-accent: var(--accent);
+}
+
+.stage--intake {
+  --stage-accent: var(--success);
+}
+
+.stage--alert {
+  --stage-accent: var(--danger);
+}
+
+.stage--reschedule {
+  --stage-accent: var(--warning);
+}
+
+/* Taken out of flow so it spans the stage's full height whatever the stage
+   contains — a grid row span cannot, because a collapsed stage has one row and
+   an expanded one has two. */
+.stage-rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.stage-rail::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: -2px;
+  width: 1px;
+  background-color: var(--border-strong);
+}
+
+/* The last rail stops just past its own dot so the timeline ends rather than
+   trailing off into empty space. */
+.stage:last-child .stage-rail::before {
+  bottom: auto;
+  height: 18px;
+}
+
+.stage-dot {
+  position: relative;
+  margin-top: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: var(--surface);
+  border: 2px solid var(--stage-accent);
+}
+
+.stage--done .stage-dot,
+.stage--failed .stage-dot {
+  background-color: var(--stage-accent);
+}
+
+.stage--active .stage-dot {
+  background-color: var(--stage-accent);
+  animation: stage-pulse 2s var(--ease-out) infinite;
+}
+
+@keyframes stage-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--stage-accent);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.stage-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: start;
+  column-gap: var(--space-2);
+  width: 100%;
+  padding: 0 0 var(--space-3);
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.stage-header:hover .stage-title {
+  color: var(--accent-text);
+}
+
+.stage-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.stage-agent {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.7;
+  letter-spacing: var(--tracking-caps);
+  color: var(--stage-accent);
+}
+
+.stage-title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  color: var(--text-primary);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+/* Sized so its line box matches the status pill's height and the two sit on a
+   shared centre line. */
+.stage-chevron {
+  font-size: var(--text-xs);
+  line-height: 2;
+  color: var(--text-tertiary);
+}
+
+.stage-summary {
+  grid-column: 1 / -1;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  color: var(--text-tertiary);
+}
+
+.stage-turn-count {
+  grid-column: 1 / -1;
+  margin-top: var(--space-1);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-faint);
+}
+
+.stage-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-bottom: var(--space-5);
+}
+
+.stage-alert {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--danger);
+  background-color: var(--danger-soft);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.stage-waiting {
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+/* -------------------------------------------------------------------- turns
+   Patient right, assistant left, tool actions centred. Only the patient's own
+   words get the accent tint — it keeps "what I said" scannable in a long call. */
+
+.turn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  max-width: 88%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  color: var(--text-primary);
+}
+
+.turn--user {
+  align-self: flex-end;
+  background-color: var(--accent-soft);
+  border-color: var(--accent-border);
+}
+
+.turn--assistant {
+  align-self: flex-start;
+  background-color: var(--surface-inset);
+  border-color: var(--border-faint);
+}
+
+.turn--tool {
+  align-self: center;
+  max-width: 100%;
+  background-color: transparent;
+  border-color: var(--border);
+  border-style: dashed;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.turn-role {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  color: var(--text-faint);
+}
+
+/* ============================================================= INTAKE PANEL */
+
+.intake-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }
 
 .intake-empty {
-  opacity: 0.6;
-  font-size: 0.9em;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
 }
 
 .intake-fields {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin: 0;
-}
-
-.intake-field {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.intake-field dt {
-  font-size: 0.7em;
-  text-transform: uppercase;
-  opacity: 0.6;
-  letter-spacing: 0.05em;
-}
-
-.intake-field dd {
+  gap: var(--space-4);
   margin: 0;
 }
 
 .intake-summary {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(128, 128, 128, 0.3);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border-faint);
 }
 
 .intake-summary h3 {
-  margin: 0 0 6px;
-  font-size: 0.85em;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.7;
+  margin-bottom: var(--space-2);
 }
 
 .intake-summary p {
-  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--text-secondary);
 }
 
-.transcript-empty {
-  opacity: 0.6;
-  text-align: center;
-  margin: auto;
+/* ============================================================ DEVELOPER LOG
+   Debug surface, so it reads in a different register from the clinical UI:
+   monospace, sunken, no gradient, collapsed until asked for. */
+
+.devlog {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs), var(--highlight-inset);
 }
 
-.turn {
+.devlog__summary {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  max-width: 85%;
-}
-
-.turn--user {
-  align-self: flex-end;
-  background: #2563eb22;
-}
-
-.turn--assistant {
-  align-self: flex-start;
-  background: rgba(128, 128, 128, 0.15);
-}
-
-.turn--tool {
-  align-self: center;
-  background: rgba(234, 179, 8, 0.15);
-  font-style: italic;
-  font-size: 0.9em;
-}
-
-.turn-role {
-  font-size: 0.7em;
-  text-transform: uppercase;
-  opacity: 0.6;
-  letter-spacing: 0.05em;
-}
-
-.datachannel-panel {
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 12px;
-  padding: 12px 16px;
-}
-
-.datachannel-panel summary {
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
   cursor: pointer;
-  font-size: 0.85em;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.7;
   user-select: none;
+  list-style: none;
 }
 
-.datachannel-count {
-  opacity: 0.6;
+.devlog__summary::-webkit-details-marker {
+  display: none;
+}
+
+.devlog__summary::before {
+  content: "▸";
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.devlog[open] > .devlog__summary::before {
+  transform: rotate(90deg);
+}
+
+.devlog__count {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  letter-spacing: var(--tracking-normal);
   text-transform: none;
-  letter-spacing: normal;
 }
 
-.datachannel-log {
-  margin-top: 12px;
-  max-height: 320px;
-  overflow-y: auto;
+.devlog__log {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 0.78em;
+  gap: var(--space-2);
+  max-height: 340px;
+  padding: 0 var(--space-5) var(--space-5);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
 }
 
-.datachannel-empty {
-  opacity: 0.6;
-  font-style: italic;
-  margin: 0;
+.devlog__empty {
+  color: var(--text-faint);
 }
 
 .dc-entry {
-  border-radius: 8px;
-  padding: 8px 10px;
-  background: rgba(128, 128, 128, 0.08);
-  border-left: 3px solid rgba(128, 128, 128, 0.4);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--border-strong);
+  background-color: var(--surface-inset);
 }
 
 .dc-entry--out {
-  border-left-color: #2563eb;
+  border-left-color: var(--accent);
 }
 
 .dc-entry--in {
-  border-left-color: #16a34a;
+  border-left-color: var(--success);
 }
 
 .dc-entry-header {
   display: flex;
-  gap: 10px;
+  gap: var(--space-3);
   align-items: baseline;
   flex-wrap: wrap;
   cursor: pointer;
@@ -265,43 +526,96 @@
 }
 
 .dc-entry[open] > .dc-entry-header {
-  margin-bottom: 6px;
+  margin-bottom: var(--space-2);
 }
 
+/* Coalesced streaming deltas — one collapsed row with a count, not 400 rows. */
 .dc-entry--stream {
   display: flex;
-  gap: 10px;
+  gap: var(--space-3);
   align-items: baseline;
   flex-wrap: wrap;
-  opacity: 0.75;
+  color: var(--text-tertiary);
 }
 
 .dc-entry-direction {
-  font-weight: 600;
-  opacity: 0.8;
+  font-weight: var(--weight-semibold);
+  color: var(--text-secondary);
 }
 
 .dc-entry-type {
-  opacity: 0.9;
+  color: var(--text-primary);
 }
 
 .dc-entry-time {
   margin-left: auto;
-  opacity: 0.5;
+  color: var(--text-faint);
 }
 
 .dc-entry-count {
   margin-left: auto;
-  font-weight: 600;
-  opacity: 0.7;
+  font-weight: var(--weight-semibold);
   font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
 }
 
 .dc-entry-payload {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  opacity: 0.85;
   max-height: 240px;
   overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-secondary);
+}
+
+/* ============================================================ GENERIC LIST */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.list-marker {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  /* Reset the inherited line-height so the digit's box matches the circle. */
+  line-height: 1;
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.list-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.list-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  color: var(--text-primary);
+}
+
+.list-subtitle {
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  color: var(--text-faint);
 }

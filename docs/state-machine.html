@@ -1,0 +1,804 @@
+<title>Conversation state machine &#8212; Headache Intake Assistant</title>
+
+<style>
+  /* ==========================================================================
+     Tokens, distilled from frontend/src/styles/tokens.css so this page can be
+     opened on its own. Same roles, same values: warm neutrals on paper, cool
+     neutrals on screen, blue as the only working colour, red kept for danger.
+     Light is the bare :root; dark is redefined twice so the OS setting and an
+     explicit theme stamp both resolve.
+     ========================================================================== */
+  :root {
+    color-scheme: light;
+
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --surface-sunken: #f5f5f4;
+
+    --text-primary: #0c0a09;
+    --text-secondary: #44403c;
+    --text-tertiary: #57534e;
+    --text-faint: #78716c;
+
+    --border: rgba(12, 10, 9, 0.09);
+    --border-strong: rgba(12, 10, 9, 0.22);
+
+    --accent: #2563eb;
+    --accent-text: #1d4ed8;
+    --accent-soft: rgba(37, 99, 235, 0.09);
+
+    --danger: #dc2626;
+    --danger-text: #b91c1c;
+    --danger-soft: rgba(220, 38, 38, 0.07);
+    --danger-border: rgba(220, 38, 38, 0.38);
+
+    --warning-text: #b45309;
+    --warning-soft: rgba(245, 158, 11, 0.1);
+    --warning-border: rgba(217, 119, 6, 0.42);
+
+    --shadow-sm: 0 1px 2px rgba(12, 10, 9, 0.04), 0 2px 6px rgba(12, 10, 9, 0.05);
+
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
+      "Liberation Mono", monospace;
+
+    --shell: 1040px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+
+      --bg: #09090b;
+      --surface: #131316;
+      --surface-sunken: #0e0e11;
+
+      --text-primary: #fafafa;
+      --text-secondary: #c2c2c9;
+      --text-tertiary: #a1a1aa;
+      --text-faint: #85858f;
+
+      --border: rgba(255, 255, 255, 0.1);
+      --border-strong: rgba(255, 255, 255, 0.24);
+
+      --accent: #60a5fa;
+      --accent-text: #93c5fd;
+      --accent-soft: rgba(96, 165, 250, 0.14);
+
+      --danger: #f87171;
+      --danger-text: #fca5a5;
+      --danger-soft: rgba(248, 113, 113, 0.12);
+      --danger-border: rgba(248, 113, 113, 0.4);
+
+      --warning-text: #fbbf24;
+      --warning-soft: rgba(251, 191, 36, 0.12);
+      --warning-border: rgba(251, 191, 36, 0.4);
+
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --bg: #09090b;
+    --surface: #131316;
+    --surface-sunken: #0e0e11;
+
+    --text-primary: #fafafa;
+    --text-secondary: #c2c2c9;
+    --text-tertiary: #a1a1aa;
+    --text-faint: #85858f;
+
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.24);
+
+    --accent: #60a5fa;
+    --accent-text: #93c5fd;
+    --accent-soft: rgba(96, 165, 250, 0.14);
+
+    --danger: #f87171;
+    --danger-text: #fca5a5;
+    --danger-soft: rgba(248, 113, 113, 0.12);
+    --danger-border: rgba(248, 113, 113, 0.4);
+
+    --warning-text: #fbbf24;
+    --warning-soft: rgba(251, 191, 36, 0.12);
+    --warning-border: rgba(251, 191, 36, 0.4);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35);
+  }
+
+  /* ------------------------------------------------------------------ page */
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    max-width: var(--shell);
+    margin: 0 auto;
+    padding: 4rem 1.5rem 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 0;
+  }
+
+  .masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 2rem;
+  }
+
+  .masthead h1 {
+    margin: 0;
+    font-size: clamp(1.9rem, 1.3rem + 2.2vw, 2.6rem);
+    line-height: 1.12;
+    letter-spacing: -0.03em;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  .lead {
+    margin: 0;
+    max-width: 62ch;
+    font-size: 1.0625rem;
+    color: var(--text-secondary);
+  }
+
+  .source {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.25rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .source li {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-tertiary);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+  }
+
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  p {
+    margin: 0;
+    max-width: 68ch;
+    color: var(--text-secondary);
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    color: var(--text-primary);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.05em 0.32em;
+  }
+
+  /* ---------------------------------------------------------------- figures */
+
+  figure {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    padding: 1.75rem;
+  }
+
+  .figure-scroll {
+    overflow-x: auto;
+  }
+
+  figure svg {
+    display: block;
+    width: 100%;
+    min-width: 620px;
+    height: auto;
+  }
+
+  figcaption {
+    color: var(--text-tertiary);
+    font-size: 13px;
+    line-height: 1.6;
+    max-width: 78ch;
+    border-top: 1px solid var(--border);
+    padding-top: 0.9rem;
+  }
+
+  figcaption strong {
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  /* SVG is themed through the same tokens as the rest of the page. */
+  .node-box {
+    fill: var(--surface-sunken);
+    stroke: var(--border-strong);
+    stroke-width: 1.25;
+  }
+
+  .node--closing .node-box {
+    fill: var(--warning-soft);
+    stroke: var(--warning-border);
+  }
+
+  .node--danger .node-box {
+    fill: var(--danger-soft);
+    stroke: var(--danger-border);
+  }
+
+  .n-title {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    fill: var(--text-primary);
+  }
+
+  .n-sub {
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    fill: var(--text-faint);
+  }
+
+  .node--closing .n-sub {
+    fill: var(--warning-text);
+  }
+
+  .node--danger .n-title,
+  .node--danger .n-sub {
+    fill: var(--danger-text);
+  }
+
+  .edge {
+    fill: none;
+    stroke: var(--text-tertiary);
+    stroke-width: 1.4;
+  }
+
+  .edge--danger {
+    stroke: var(--danger);
+    stroke-width: 1.8;
+  }
+
+  .edge--ghost {
+    stroke: var(--text-faint);
+    stroke-width: 1.2;
+    stroke-dasharray: 5 4;
+  }
+
+  .e-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    fill: var(--text-tertiary);
+  }
+
+  .e-label--danger {
+    fill: var(--danger-text);
+  }
+
+  .e-note {
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    fill: var(--text-faint);
+  }
+
+  .frame {
+    fill: none;
+    stroke: var(--border-strong);
+    stroke-width: 1;
+    stroke-dasharray: 3 5;
+  }
+
+  .frame-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    fill: var(--text-faint);
+  }
+
+  .mk-plain {
+    fill: var(--text-tertiary);
+  }
+
+  .mk-danger {
+    fill: var(--danger);
+  }
+
+  .mk-ghost {
+    fill: var(--text-faint);
+  }
+
+  /* ------------------------------------------------------------------ table */
+
+  .table-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+  }
+
+  table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  thead th {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    font-weight: 500;
+    background: var(--surface-sunken);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  td.mono {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+
+  td.muted {
+    color: var(--text-tertiary);
+  }
+
+  .state-tag {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    border-radius: 999px;
+    padding: 0.12rem 0.5rem;
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .state-tag--closing {
+    border-color: var(--warning-border);
+    color: var(--warning-text);
+    background: var(--warning-soft);
+  }
+
+  .state-tag--danger {
+    border-color: var(--danger-border);
+    color: var(--danger-text);
+    background: var(--danger-soft);
+  }
+
+  /* ------------------------------------------------------------- invariants */
+
+  .rules {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  .rules li {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    border-radius: 12px;
+    padding: 0.9rem 1.1rem;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+  }
+
+  .rules b {
+    display: block;
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+    font-size: 12.5px;
+    color: var(--text-faint);
+  }
+</style>
+
+<div class="shell">
+  <header class="masthead">
+    <p class="eyebrow">Headache Intake Assistant &#183; conversation control</p>
+    <h1>The state machine, and how the call hangs itself up</h1>
+    <p class="lead">
+      Six states, five events, five tools. The backend is the only authority: it owns the
+      transition table and rejects any tool call that is not legal for the state the session
+      is actually in. The browser renders what the server says and relays the session config
+      the server issues &#8212; it never decides a transition.
+    </p>
+    <ul class="source">
+      <li>shared/src/machine.ts</li>
+      <li>backend/src/tools/index.ts</li>
+      <li>frontend/src/useRealtimeConversation.ts</li>
+    </ul>
+  </header>
+
+  <section>
+    <h2>Transitions</h2>
+    <p>
+      Every arrow below is a transition the server will authorize. Black arrows are driven by
+      tool calls the model makes; the red one is the deterministic transcript scanner, which
+      runs on every patient turn.
+    </p>
+
+    <figure>
+      <div class="figure-scroll">
+        <svg
+          viewBox="0 0 1000 448"
+          role="img"
+          aria-label="State diagram: verification leads to intake on identity_verified, to locked on verification_locked, and to reschedule on reschedule_requested. Intake leads to finalized on intake_finalized. A red_flag event from any of those five states leads to alert, which has no outgoing transitions."
+        >
+          <defs>
+            <marker
+              id="sm-arrow"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
+            >
+              <path class="mk-plain" d="M 0 0 L 10 5 L 0 10 z" />
+            </marker>
+            <marker
+              id="sm-arrow-danger"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
+            >
+              <path class="mk-danger" d="M 0 0 L 10 5 L 0 10 z" />
+            </marker>
+          </defs>
+
+          <!-- everything the scanner can still escalate out of -->
+          <rect class="frame" x="16" y="24" width="968" height="272" rx="16" />
+          <text class="frame-label" x="964" y="48" text-anchor="end">
+            RED FLAG STAYS LEGAL FROM EVERY STATE INSIDE
+          </text>
+
+          <!-- main spine -->
+          <g class="node">
+            <rect class="node-box" x="52" y="64" width="164" height="62" rx="12" />
+            <text class="n-title" x="70" y="92">verification</text>
+            <text class="n-sub" x="70" y="110">initial state</text>
+          </g>
+
+          <g class="node">
+            <rect class="node-box" x="412" y="64" width="164" height="62" rx="12" />
+            <text class="n-title" x="430" y="92">intake</text>
+            <text class="n-sub" x="430" y="110">collects the record</text>
+          </g>
+
+          <g class="node node--closing">
+            <rect class="node-box" x="772" y="64" width="164" height="62" rx="12" />
+            <text class="n-title" x="790" y="92">finalized</text>
+            <text class="n-sub" x="790" y="110">ends the call</text>
+          </g>
+
+          <line class="edge" x1="216" y1="95" x2="404" y2="95" marker-end="url(#sm-arrow)" />
+          <text class="e-label" x="310" y="86" text-anchor="middle">identity_verified</text>
+
+          <line class="edge" x1="576" y1="95" x2="764" y2="95" marker-end="url(#sm-arrow)" />
+          <text class="e-label" x="670" y="86" text-anchor="middle">intake_finalized</text>
+
+          <!-- the two ways verification ends without an intake -->
+          <g class="node node--closing">
+            <rect class="node-box" x="52" y="196" width="164" height="62" rx="12" />
+            <text class="n-title" x="70" y="224">locked</text>
+            <text class="n-sub" x="70" y="242">ends the call</text>
+          </g>
+
+          <g class="node node--closing">
+            <rect class="node-box" x="232" y="196" width="164" height="62" rx="12" />
+            <text class="n-title" x="250" y="224">reschedule</text>
+            <text class="n-sub" x="250" y="242">ends the call</text>
+          </g>
+
+          <line class="edge" x1="100" y1="126" x2="100" y2="188" marker-end="url(#sm-arrow)" />
+          <text class="e-label" x="110" y="184">verification_locked</text>
+
+          <polyline
+            class="edge"
+            points="170,126 170,160 314,160 314,188"
+            marker-end="url(#sm-arrow)"
+          />
+          <text class="e-label" x="242" y="152" text-anchor="middle">reschedule_requested</text>
+
+          <!-- the sink -->
+          <line class="edge edge--danger" x1="494" y1="296" x2="494" y2="344" marker-end="url(#sm-arrow-danger)" />
+          <text class="e-label e-label--danger" x="508" y="318">red_flag</text>
+          <text class="e-note" x="508" y="334">scanner or flag_emergency</text>
+
+          <g class="node node--danger">
+            <rect class="node-box" x="412" y="352" width="164" height="62" rx="12" />
+            <text class="n-title" x="430" y="380">alert</text>
+            <text class="n-sub" x="430" y="398">sink &#8212; no way out</text>
+          </g>
+        </svg>
+      </div>
+      <figcaption>
+        <strong>Only one edge leaves a closing state.</strong> Three of the five states in the
+        dashed frame have already finished the agent's work, but a patient reporting stroke
+        symptoms while we are apologising for a failed verification still needs to be told to
+        call 911 &#8212; so <code>red_flag</code> stays reachable from all of them, and
+        <code>alert</code> is the single true sink.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Which tools are callable where</h2>
+    <p>
+      Gating lives in <code>TOOL_STATES</code>, not in ad-hoc checks at each call site. No tool
+      lists a closing state, which is what makes those states terminal: every tool call after an
+      escalation, a lock, a reschedule or a finalized intake is refused. A refusal still returns
+      the authoritative record, so a rejected call resyncs the UI instead of desyncing it.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Tool</th>
+            <th scope="col">Callable from</th>
+            <th scope="col">Leads to</th>
+            <th scope="col">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">verify_identity</td>
+            <td><span class="state-tag">verification</span></td>
+            <td><span class="state-tag">intake</span></td>
+            <td class="muted">On a match. Three failed attempts instead lock the session.</td>
+          </tr>
+          <tr>
+            <td class="mono">request_reschedule</td>
+            <td><span class="state-tag">verification</span></td>
+            <td><span class="state-tag state-tag--closing">reschedule</span></td>
+            <td class="muted">The patient asked to be called back another time.</td>
+          </tr>
+          <tr>
+            <td class="mono">update_intake</td>
+            <td><span class="state-tag">intake</span></td>
+            <td><span class="state-tag">intake</span></td>
+            <td class="muted">Writes known fields only; unknown keys are dropped.</td>
+          </tr>
+          <tr>
+            <td class="mono">flag_emergency</td>
+            <td><span class="state-tag">intake</span></td>
+            <td><span class="state-tag state-tag--danger">alert</span></td>
+            <td class="muted">The model's own escalation path, alongside the scanner's.</td>
+          </tr>
+          <tr>
+            <td class="mono">finalize_intake</td>
+            <td><span class="state-tag">intake</span></td>
+            <td><span class="state-tag state-tag--closing">finalized</span></td>
+            <td class="muted">Writes the summary and closes the record.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Hanging up</h2>
+    <p>
+      Reaching a closing state is not the same as being able to close the connection: the
+      assistant still has a goodbye &#8212; or a 911 instruction &#8212; to say, and tearing down the peer
+      connection cuts it off mid-sentence. The call waits for the model to finish speaking, then
+      drops.
+    </p>
+
+    <figure>
+      <div class="figure-scroll">
+        <svg
+          viewBox="0 0 760 440"
+          role="img"
+          aria-label="Sequence: a closing state arms the hangup, the farewell is requested with response.create, response.done says it finished generating, output_audio_buffer.stopped says it finished playing, and 800 milliseconds later the connection closes. A red flag arriving mid-reply cancels the in-flight reply first. A 20 second backstop closes the connection if no audio ever plays."
+        >
+          <defs>
+            <marker
+              id="hu-arrow"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
+            >
+              <path class="mk-plain" d="M 0 0 L 10 5 L 0 10 z" />
+            </marker>
+            <marker
+              id="hu-arrow-danger"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
+            >
+              <path class="mk-danger" d="M 0 0 L 10 5 L 0 10 z" />
+            </marker>
+            <marker
+              id="hu-arrow-ghost"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
+            >
+              <path class="mk-ghost" d="M 0 0 L 10 5 L 0 10 z" />
+            </marker>
+          </defs>
+
+          <g class="node node--closing">
+            <rect class="node-box" x="260" y="20" width="300" height="52" rx="10" />
+            <text class="n-sub" x="278" y="42">closing state reached</text>
+            <text class="n-title" x="278" y="61">connection = "ending"</text>
+          </g>
+
+          <line class="edge" x1="410" y1="72" x2="410" y2="96" marker-end="url(#hu-arrow)" />
+          <text class="e-note" x="422" y="90">arm, then wait</text>
+
+          <g class="node">
+            <rect class="node-box" x="260" y="104" width="300" height="52" rx="10" />
+            <text class="n-sub" x="278" y="126">the farewell is asked for</text>
+            <text class="n-title" x="278" y="145">response.create</text>
+          </g>
+
+          <line class="edge" x1="410" y1="156" x2="410" y2="180" marker-end="url(#hu-arrow)" />
+          <text class="e-note" x="422" y="174">model speaks</text>
+
+          <g class="node">
+            <rect class="node-box" x="260" y="188" width="300" height="52" rx="10" />
+            <text class="n-sub" x="278" y="210">finished generating</text>
+            <text class="n-title" x="278" y="229">response.done</text>
+          </g>
+
+          <line class="edge" x1="410" y1="240" x2="410" y2="264" marker-end="url(#hu-arrow)" />
+          <text class="e-note" x="422" y="258">audio drains</text>
+
+          <g class="node">
+            <rect class="node-box" x="260" y="272" width="300" height="52" rx="10" />
+            <text class="n-sub" x="278" y="294">finished playing</text>
+            <text class="n-title" x="278" y="313">output_audio_buffer.stopped</text>
+          </g>
+
+          <line class="edge" x1="410" y1="324" x2="410" y2="348" marker-end="url(#hu-arrow)" />
+          <text class="e-note" x="422" y="342">+800 ms grace</text>
+
+          <g class="node">
+            <rect class="node-box" x="260" y="356" width="300" height="52" rx="10" />
+            <text class="n-sub" x="278" y="378">mic off, peer connection closed</text>
+            <text class="n-title" x="278" y="397">connection = "ended"</text>
+          </g>
+
+          <!-- escalation cuts in front of the queue -->
+          <g class="node node--danger">
+            <rect class="node-box" x="10" y="104" width="180" height="52" rx="10" />
+            <text class="n-sub" x="26" y="126">red flag mid-reply</text>
+            <text class="n-title" x="26" y="145">response.cancel</text>
+          </g>
+
+          <line class="edge edge--danger" x1="190" y1="130" x2="252" y2="130" marker-end="url(#hu-arrow-danger)" />
+          <text class="e-note" x="221" y="120" text-anchor="middle">first</text>
+
+          <!-- backstop -->
+          <polyline
+            class="edge edge--ghost"
+            points="560,130 640,130 640,382 568,382"
+            marker-end="url(#hu-arrow-ghost)"
+          />
+          <text class="e-note" x="652" y="248">20 s backstop,</text>
+          <text class="e-note" x="652" y="262">if no audio plays</text>
+        </svg>
+      </div>
+      <figcaption>
+        <strong>Two signals, not one.</strong> <code>response.done</code> only says the farewell
+        finished <em>generating</em>; <code>output_audio_buffer.stopped</code> &#8212; emitted by WebRTC
+        sessions when the output buffer drains &#8212; says it finished <em>playing</em>. Only a
+        <code>response.done</code> that lands after arming counts, so audio still draining from the
+        turn that carried the closing tool call can't trigger an early hangup. A scanner escalation
+        is the awkward case: it can land while the model is already answering the very turn that
+        contained the red flag, under pre-alert instructions, so that reply is cancelled and the
+        alert takes its place before the hangup is armed again.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Invariants worth keeping</h2>
+    <ul class="rules">
+      <li>
+        <b>The server decides, the browser reports.</b>
+        Every response carries the authoritative record; the client adopts it as the single
+        source of truth for state and UI, including on a refused call.
+      </li>
+      <li>
+        <b>Instructions travel one stage at a time.</b>
+        The browser holds the data channel, so it must relay session configs &#8212; but it only ever
+        gets the one attached to a transition the server just authorized.
+      </li>
+      <li>
+        <b>Terminal means terminal for tools only.</b>
+        A closing state is closed to the agent, not to an emergency. The scanner keeps running
+        on every patient turn.
+      </li>
+      <li>
+        <b>Ending the call is a UI state, not a state-machine state.</b>
+        <code>ending</code> and <code>ended</code> describe the WebRTC connection. The
+        conversation state stays whatever the server last said it was.
+      </li>
+    </ul>
+  </section>
+
+  <footer>
+    Generated from the source of truth in <code>shared/src/machine.ts</code>. If the transition
+    table changes there, this page is stale until it is redrawn.
+  </footer>
+</div>

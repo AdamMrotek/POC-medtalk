@@ -365,11 +365,12 @@ per-IP and global rate limits and body size caps.
 | **Severity** | High |
 | **Prototype risk** | Medium |
 | **Controls** | A 5.34, A 5.31 |
-| **Location** | `backend/src/index.ts` — `VERIFICATION_INSTRUCTIONS`; no consent storage |
+| **Location** | `backend/src/policy/instructions.ts` — `verificationRole`; no consent storage |
 
-The agent's opening line — *"Hello, AI assistant calling on behalf of the hospital, do you
-have a moment for assessment?"* — discloses the AI caller and asks about timing, but no
-consent is ever **recorded**. Nothing persists whether the patient agreed to proceed, was
+The agent's opening line — *"Hello, this is an AI assistant calling on behalf of the
+hospital about your upcoming appointment. Is now a good time for a quick pre-visit
+check-in about your headache?"* — discloses the AI caller, states the purpose, and asks
+about timing, but no consent is ever **recorded**. Nothing persists whether the patient agreed to proceed, was
 told the interaction is processed by AI, or was given the non-diagnostic disclaimer.
 
 The requirements document specifies: *"Explicit non-diagnostic framing: consent/disclaimer

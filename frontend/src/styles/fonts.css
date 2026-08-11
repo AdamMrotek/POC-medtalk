@@ -1,0 +1,49 @@
+/* ============================================================================
+   WEBFONTS
+   ----------------------------------------------------------------------------
+   Sources point at /fonts/ (frontend/public/fonts/), NOT at a path under src/.
+   That is deliberate: Vite resolves url() inside src/ at build time and fails
+   the build on a missing file, whereas public/ is copied verbatim, so a missing
+   font is a 404 at runtime and the stack in --font-display falls back cleanly.
+   Drop the files in and they light up with no code change.
+
+   Only the three weights the app actually asks for are declared, out of the
+   seven the family ships: 400 (h2), 700 (wordmark), 900 (h1, buttons). An
+   unused @font-face never fetches, but it also never gets noticed when it
+   rots — add a block here when you add a weight, not before.
+
+   The family name and weight below are OURS, not the files'. That matters here:
+   the vendor OTFs use the old per-weight naming convention, where Bold reports
+   its family as "Phenomena Bold" and its subfamily as "Regular". @font-face
+   overrides both, so 400/700 resolve correctly — but a local() source or a
+   bare `font-family: Phenomena` against a system install would not.
+
+   See public/fonts/README.md for provenance and the licence question.
+   ============================================================================ */
+
+@font-face {
+  font-family: "Phenomena";
+  src: url("/fonts/Phenomena-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  /* Render immediately in the fallback and swap when the font lands. The face
+     is only used at display sizes, so the reflow is a few headings, not the
+     whole page. */
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Phenomena";
+  src: url("/fonts/Phenomena-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Phenomena";
+  src: url("/fonts/Phenomena-Black.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}

@@ -4,11 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "npm run build -w @threepio/shared",
     "dev": "tsx watch src/index.ts",
+    "prebuild": "npm run build -w @threepio/shared",
     "build": "tsc -p tsconfig.json",
+    "pretest": "npm run build -w @threepio/shared",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@threepio/shared": "*",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2"

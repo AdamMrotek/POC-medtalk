@@ -1,0 +1,16 @@
+{
+  "name": "threepio",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm run build -w @threepio/shared && npm run build -w threep-backend && npm run build -w frontend",
+    "test": "npm test -w threep-backend",
+    "dev:backend": "npm run dev -w threep-backend",
+    "dev:frontend": "npm run dev -w frontend"
+  }
+}
