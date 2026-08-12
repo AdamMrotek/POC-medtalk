@@ -1,116 +1,110 @@
-# Design system
+# Design system — "Clinical Calm"
 
 Live reference: run the app and open [`#/styleguide`](http://localhost:5173/#/styleguide). It renders
 the real tokens and the real component classes, so it cannot drift from the app.
+
+## The idea in one line
+
+Cool slate neutrals, one accent hue, flat surfaces — so that **anything coloured on screen means
+something clinical**. There is no brand colour competing with a status colour, because there is no
+brand colour.
 
 ## Layers
 
 Imported in this order from `src/index.css` — the order is load-bearing.
 
-| File          | Contains                                                                        |
-| ------------- | ------------------------------------------------------------------------------- |
-| `fonts.css`   | `@font-face` for the display face (Phenomena 400/700). See `public/fonts/README.md`. |
-| `tokens.css`  | Colour, type, space, radius, elevation, motion. Light + dark.                     |
-| `grain.css`   | The noise textures, the fixed page backdrop, and the `.u-*` gradient utilities.    |
-| `base.css`    | Element defaults, then the primitives: `.btn` `.panel` `.pill` `.banner` `.field`. |
-| `../App.css`  | Feature layout only. Composes the above; contains no literal colours.              |
+| File         | Contains                                                                          |
+| ------------ | --------------------------------------------------------------------------------- |
+| `tokens.css` | Colour, type, space, radius, elevation, motion. Light + dark.                      |
+| `base.css`   | Element defaults, then the primitives: `.btn` `.panel` `.pill` `.banner` `.field`. |
+| `../App.css` | Feature layout only. Composes the above; contains no literal colours.              |
 
 ## Rules
 
 **Component CSS may only reference semantic tokens** (`--text-secondary`, `--accent`, `--border`) —
-never primitives (`--warm-500`, `--indigo-600`). If a component reaches for a primitive, the role it
+never primitives (`--slate-500`, `--sky-700`). If a component reaches for a primitive, the role it
 needs is missing; add it to `tokens.css` instead. This is why dark mode is one block of overrides
 rather than a parallel stylesheet.
 
-**Two type faces.** `--font-display` (Phenomena, by Radomir Tinkov & Plamen Motev / Fontfabric)
-carries `h1`, `h2`, the wordmark and button labels; `--font-sans` carries everything else, including
-`h3` at 15px and all sustained reading. Phenomena is a narrow geometric sans — fine large, but at
-13px the tight counters cost more legibility than the character buys, which is why it is not the
-body face. To use it everywhere, point `--font-sans` at it too.
+**One typeface, and no webfont.** `--font-sans` leads with Inter and falls through to the platform
+UI face (SF Pro, Segoe, Roboto) — all humanist grotesks, all metrically close. Nothing is fetched,
+so there is no FOUT to design around and no third-party request from a page handling patient
+answers. `--font-display` still exists but is an **alias** of `--font-sans`: it is kept so that
+"heading" remains a nameable role, and re-pointing that single token restores a separate display
+face without editing a rule.
 
-Three weights are installed, of the seven the family ships, and each has exactly one job:
+> If you want Inter guaranteed rather than opportunistic, **self-host** it and add an `@font-face`.
+> Do not add a Google Fonts `<link>` — it leaks a request per page view to a third party, which is
+> a bad trade on a clinical intake screen and an awkward line in the ISO 27001 assessment.
 
-| Weight               | Used on                | Note                                              |
-| -------------------- | ---------------------- | ------------------------------------------------- |
-| 400 `--weight-normal`| `h2`                   | `h2` asks for 500 and resolves *down* to this      |
-| 700 `--weight-bold`  | the wordmark           | the logo is type, so it needs the extra presence   |
-| 900 `--weight-black` | `h1`, `.btn` labels    | weight buys presence without buying width          |
-
-`body` sets `font-synthesis: none`, so an uninstalled weight is never faked — it resolves to the
-nearest installed one per the CSS font-matching rules. That is why `h2` at `--weight-medium` renders
-Regular rather than a smeared fake 500, and it is deliberate. A missing font *file* falls back to the
-sans stack silently rather than failing the build. See `public/fonts/README.md`, which covers adding
-a weight and **an unresolved licence question that needs answering before this ships**.
-
-**Buttons are the one place the display face runs at body size**, which is why `.btn` is the only
-rule that opens tracking to `--tracking-wide`. Black closes Phenomena's narrow counters, and at 12px
-(`.btn--sm`) the lowercase e/a/o start to fill in without that air. If you re-point `--font-display`
-to a wider face, that tracking should come back down.
+**Weight, not face, marks hierarchy.** With one family doing every job, the heavy end had to come
+down: headings are `--weight-semibold` (600), and `--weight-bold` (700) appears exactly once, on the
+wordmark. There is no 900 any more. That weight existed to give a narrow condensed face presence at
+display size; a grotesk does not need it, and a very heavy h1 on an intake screen reads as urgency
+the copy has not earned — which is precisely the signal an emergency banner needs to own.
 
 **The wordmark is the logo.** There is no mark, glyph or lockup image — the header is one line of
-type in the display face at `--weight-bold`, which is the only place in the app that uses 700. If
-you shrink it, shrink it toward `--text-base`; below that it stops reading as a brand and starts
-reading as a stray header label.
+type at `--weight-bold`. If you shrink it, shrink it toward `--text-base`; below that it stops
+reading as a brand and starts reading as a stray header label.
 
-**Grain goes on ambient and emphatic surfaces only** — the page backdrop, the primary action, status
-banners. Never behind sustained reading (panel bodies, transcripts, the event log),
-because luminance noise under small text costs legibility. The grain tile is a fixed pixel size and
-never scales with its host; that constant size is what reads as texture rather than as a blurry image.
+**Surfaces are flat.** No mesh, no gradient, no grain, anywhere. A card separates from the page by
+being lighter (`#ffffff` on `#f8fafc`), by a hairline, and by a shadow — that is the entire depth
+model. The previous system's page-level gradient and film-grain layers are gone, along with
+`grain.css` and the `.u-grain` / `.u-gradient-*` / `.u-mesh-panel` utilities.
 
-Strength is two tokens: `--grain-opacity` (page backdrop, per scheme) and `--grain-surface-opacity`
-(discrete surfaces — buttons, banners). The current setting is deliberately subtle: fine
-specks, no contrast stretch, so it reads as paper tooth. **Opacity is the wrong dial if you want it
-to bite harder** — raising it alone just lays down a flat grey veil. The two that actually change the
-character are `baseFrequency` in `grain.css` (lower = chunkier specks; ~0.55 is coarse) and adding an
-`feComponentTransfer` with a linear slope around 2, which pushes grains toward near-black and
-near-white instead of clustering at mid-grey.
-
-**Text tiers are contrast-budgeted.** All four steps clear WCAG AA (4.5:1) against the worst-case
-background in their scheme, including `--text-faint`, which carries the intake panel's field labels.
-Measured ratios are noted inline in `tokens.css`. Re-check them if you re-point a surface.
+**Text tiers are contrast-budgeted**, and the budget is measured against the *worst-case* surface in
+each scheme — `--surface-sunken` in light, `--surface-raised` in dark, not `--bg` in either. All four
+steps clear WCAG AA (4.5:1), including `--text-faint`, which carries the intake panel's field labels
+and is content rather than decoration. Ratios are noted inline in `tokens.css`. Re-measure if you
+re-point a surface.
 
 **One focus treatment**, defined once in `base.css`. There is no bare `outline: none` in this
 codebase; anything that removes the ring owes a replacement.
 
-**The brand tricolour exists at two strengths, and which one you use is decided by one question:
-does anything sit on top of it?**
+## Tint vs. field — the load-bearing distinction
 
-| Token           | Stops                              | Used on                                 |
-| --------------- | ---------------------------------- | --------------------------------------- |
-| `--mesh-brand`  | `blue-600 → white → red-600`       | **Nothing.** Reference only — see below. |
-| `--mesh-accent` | `blue-200 → white → red-200`       | Anything carrying a label (the button)   |
+Two ways a colour can be applied, and they are not interchangeable:
 
-`--mesh-brand` cannot host text at all: its blue and red ends need a light label and its white
-midpoint needs a dark one, so no single colour survives the sweep. That is the whole reason the
-lightened tier exists. Keep the two in sync if you re-angle or re-stop either.
+| Fill      | What it is                                    | Carries        | Used by                          |
+| --------- | --------------------------------------------- | -------------- | -------------------------------- |
+| **Tint**  | status colour at ~10% over the surface        | dark same-hue text | pills, patient turns, banners |
+| **Field** | the colour at full saturation                 | a white label  | the primary action, an emergency |
 
-Since the logo mark was removed, **nothing in the app renders `--mesh-brand`** — the wordmark carries
-the brand now. It is kept as the canonical statement of the ramp (the styleguide renders it, and
-`--mesh-accent` is the same sweep lightened). Do not press it back into service as a surface without
-re-reading the paragraph above.
+Only two things in the app are ever a field: `.btn--primary` and `.banner--danger` / `.btn--danger`.
+That is a difference in **kind**, not degree, and it is what makes an escalation unmistakable next
+to an ordinary warning — you do not have to read the copy to know which is which. If a third
+component starts filling with a saturated colour, this signal is gone.
 
-**A gradient through white has no fill contrast — the border is load-bearing.** In light mode the
-button's white midpoint sits at **1.04:1** against `--bg`, so the fill alone does not define the
-button's edge at all. `.btn--primary` carries an explicit border for this reason; removing it makes
-it dissolve into a light page. (In dark mode the same pale fill is
-14–20:1 against the page and pops on its own.)
+## `--danger-fill` is the one token dark mode does not re-point
 
-**Red is a brand colour now; danger must still win.** Two things keep an emergency unmistakable:
+`--danger` lightens to `red-500` in dark mode for dots, borders and text, where the deeper red goes
+muddy. But **white on `red-500` is 3.76:1** — below AA. So the emergency *fill* reads from a separate
+token, `--danger-fill`, which stays `red-600` in both schemes (4.83:1 with white).
 
-1. Every accent *surface* — `--accent-soft`, `--accent-border`, focus, links, the active pill — is
-   **blue only**. Red appears solely inside the brand gradients and `--mesh-ambient`.
-2. `--mesh-danger` is deliberately **not a sweep**. It is a flat, fully saturated red field. That
-   flatness, against a brand ramp that visibly travels blue → white → red, is the distinguishing
-   signal — and the brand ramp on labelled surfaces is pale, where danger is saturated.
+The surface that says "call 911" does not get to fail contrast because it looked better on a dark
+page. `.btn--danger` and `.banner--danger` both read from `--danger-fill`, not `--danger`.
 
-If you re-point the accent, re-check both — dropping either makes the emergency banner read as
-decoration.
+## Four values that are not the obvious pick
 
-**Gradient stops are contrast-budgeted across the whole sweep, not just at the stops.** Near-black
-sits on `--mesh-accent` (button labels); worst point across the ramp is 13.7:1, at the red end.
-Sample the interpolation rather than the endpoints if you move a stop, and re-check the direction of
-the budget if you ever re-saturate the fill — a darker fill flips the label back to light, and then
-the white midpoint becomes the failure point instead of the ends.
+Each of these was chosen *because* the natural choice measured short. Do not "tidy" them back.
+
+| Token           | Obvious pick        | Measured           | Actually used              |
+| --------------- | ------------------- | ------------------ | -------------------------- |
+| `--accent`      | `sky-600 #0284c7`   | **4.10:1** w/ white | `sky-700 #0369a1` → 5.93:1 |
+| `--text-faint`  | `slate-500 #64748b` | **4.34:1** on sunken | `slate-550 #5b6a7d` → 5.04:1 |
+| `--warning`     | `amber-500 #f59e0b` | **2.15:1** as a dot | `amber-600 #d97706` → 3.19:1 |
+| `--success-text`| `green-700 #15803d` | **4.49:1** on tint  | `green-800 #166534` → 6.38:1 |
+
+`--accent` is the one worth internalising: `sky-500`/`sky-600` are the steps that *look* like the
+brand colour, and both fail AA under a white button label. The accent is a fill that carries text,
+so it is budgeted as text.
+
+## Why sky and not teal
+
+Teal is the more fashionable "clinical" accent and it was the first candidate. It lost because teal
+sits next to `--success` on the wheel, and in a triage UI *"the interactive colour"* and *"the
+everything-is-fine colour"* must not be confusable. Sky is far enough from green, red and amber to
+stay unambiguous against all three.
 
 ## Adding a variant
 
@@ -125,7 +119,8 @@ Prefer a new hook over a new rule. `.pill` carries its colour on `--pill-color` 
 }
 ```
 
-## Reduced motion / transparency
+## Reduced motion
 
-`prefers-reduced-motion` collapses all animation and transition to near-zero in `base.css`.
-`prefers-reduced-transparency` drops both backdrop layers and the grain overlays in `grain.css`.
+`prefers-reduced-motion` collapses all animation and transition to near-zero in `base.css`. There is
+no longer a `prefers-reduced-transparency` block — it existed to drop the backdrop and grain layers,
+and there are none.

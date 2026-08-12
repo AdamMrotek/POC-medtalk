@@ -31,30 +31,27 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* One face across the whole app, so a heading is distinguished from body text
+   by weight, size and colour only. --font-display is an alias of --font-sans;
+   headings name it anyway, so re-pointing that one token restores a separate
+   display face without touching a rule. */
 h1,
 h2,
 h3,
 h4 {
   margin: 0;
+  font-family: var(--font-display);
   color: var(--text-primary);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold);
   line-height: var(--leading-tight);
   text-wrap: balance;
 }
 
-/* The display face carries h1 and h2 only. h3 is 15px — small enough that the
-   body face is the more legible choice, and it inherits it. */
-h1,
-h2 {
-  font-family: var(--font-display);
-}
-
-/* Black, not the --weight-medium the other headings inherit. Phenomena is a
-   narrow face, so at display size the extra weight buys presence without
-   buying width — h1 gets heavier while the line stays the same length. */
+/* Semibold, not the 900 this used to carry. That weight existed to give a
+   narrow display face presence at size; a grotesk does not need it, and on an
+   intake screen a heavier h1 reads as urgency the copy has not earned. */
 h1 {
   font-size: var(--text-display);
-  font-weight: var(--weight-black);
   letter-spacing: var(--tracking-display);
 }
 
@@ -65,6 +62,7 @@ h2 {
 
 h3 {
   font-size: var(--text-base);
+  font-weight: var(--weight-medium);
   letter-spacing: var(--tracking-tight);
 }
 
@@ -174,8 +172,6 @@ button {
   --btn-height: 2.5rem;
   --btn-padding: 0 var(--space-5);
 
-  position: relative;
-  isolation: isolate;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -184,17 +180,14 @@ button {
   padding: var(--btn-padding);
   border: 1px solid transparent;
   border-radius: var(--radius-full);
-  font-family: var(--font-display);
   font-size: var(--text-sm);
-  font-weight: var(--weight-black);
-  /* Buttons are the one place the display face runs at body size. Phenomena's
-     counters are narrow and Black closes them further, so the label opens out
-     rather than sitting at the 0em the sans face wants — without this the
-     lowercase e/a/o start to fill in at 13px. */
+  font-weight: var(--weight-semibold);
+  /* A hair of tracking only. The old 0.04em was compensating for a condensed
+     face at Black; a grotesk at semibold needs almost none, and over-tracking a
+     short label ("End conversation") makes it read as a caps lockup. */
   letter-spacing: var(--tracking-wide);
   white-space: nowrap;
   cursor: pointer;
-  overflow: hidden;
   transition: background-color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-base) var(--ease-out),
@@ -223,29 +216,31 @@ button {
   font-size: var(--text-xs);
 }
 
-/* Primary: the lightened brand tricolour. Exactly one of these is on screen at
-   a time — it is how you find the thing to press. The fill is pale, so a
-   hairline and a cast shadow do the work a saturated fill used to do; without
-   the border its white midpoint melts into a light page. */
+/* Primary: one flat, saturated accent field. Exactly one of these is on screen
+   at a time — it is how you find the thing to press. A solid fill needs no
+   border to define its edge, which is the practical reason the gradient went:
+   a ramp through white had no fill contrast at its midpoint and leaned on a
+   hairline to exist at all. */
 .btn--primary {
-  background-image: var(--mesh-accent);
+  background-color: var(--accent);
   color: var(--accent-contrast);
-  border-color: var(--border-strong);
   box-shadow: var(--shadow-accent);
 }
 
 .btn--primary:hover:not(:disabled) {
-  box-shadow: var(--shadow-accent), 0 0 0 4px var(--accent-soft);
+  background-color: var(--accent-hover);
 }
 
+/* --danger-fill, not --danger: the fill is red-600 in both schemes, because
+   dark mode's lighter --danger drops a white label below AA. See tokens.css. */
 .btn--danger {
-  background-image: var(--mesh-danger);
+  background-color: var(--danger-fill);
   color: var(--danger-contrast);
   box-shadow: var(--shadow-danger);
 }
 
 .btn--danger:hover:not(:disabled) {
-  box-shadow: var(--shadow-danger), 0 0 0 4px var(--danger-soft);
+  background-color: var(--danger-fill-hover);
 }
 
 .btn--secondary {
@@ -269,20 +264,6 @@ button {
   color: var(--text-primary);
 }
 
-/* Grain overlay for the gradient variants only. */
-.btn--primary::after,
-.btn--danger::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background-image: var(--grain-texture-fine);
-  background-size: 90px 90px;
-  opacity: var(--grain-surface-opacity);
-  mix-blend-mode: overlay;
-  pointer-events: none;
-}
-
 /* ================================================================== PANELS */
 
 .panel {
@@ -291,7 +272,6 @@ button {
   flex-direction: column;
   min-width: 0;
   background-color: var(--surface);
-  background-image: var(--mesh-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm), var(--highlight-inset);
@@ -384,9 +364,10 @@ button {
 }
 
 /* ================================================================= BANNERS
-   Full-width interruptions. Danger gets the grain gradient because it must win
-   against everything else on the page; warning stays a flat tint so the two
-   are never confused at a glance. */
+   Full-width interruptions. Danger is the ONE saturated field in the app — it
+   is the only element that fills with a status colour rather than tinting with
+   it, and that difference in kind (not degree) is what makes an escalation
+   unmistakable next to a warning. Warning stays a flat tint. */
 
 .banner {
   display: flex;
@@ -403,24 +384,9 @@ button {
 }
 
 .banner--danger {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  background-image: var(--mesh-danger);
+  background-color: var(--danger-fill);
   color: var(--danger-contrast);
   box-shadow: var(--shadow-danger);
-}
-
-.banner--danger::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background-image: var(--grain-texture-fine);
-  background-size: 90px 90px;
-  opacity: var(--grain-surface-opacity);
-  mix-blend-mode: overlay;
-  pointer-events: none;
 }
 
 .banner--warning {

@@ -50,13 +50,13 @@ const STATUS_SWATCHES: Swatch[] = [
 ];
 
 const TYPE_STEPS = [
-  { token: "--text-display", size: "clamp 32–48px", weight: 900, tracking: "-0.03em", display: true },
-  { token: "--text-xl", size: "26px", weight: 500, tracking: "-0.015em", display: true },
-  { token: "--text-lg", size: "20px", weight: 500, tracking: "-0.015em", display: true },
+  { token: "--text-display", size: "clamp 30–44px", weight: 600, tracking: "-0.02em" },
+  { token: "--text-xl", size: "26px", weight: 600, tracking: "-0.011em" },
+  { token: "--text-lg", size: "20px", weight: 600, tracking: "-0.011em" },
   { token: "--text-md", size: "17px", weight: 400, tracking: "0" },
   { token: "--text-base", size: "15px", weight: 400, tracking: "0" },
   { token: "--text-sm", size: "13px", weight: 400, tracking: "0" },
-  { token: "--text-xs", size: "12px", weight: 500, tracking: "0.04em" },
+  { token: "--text-xs", size: "12px", weight: 500, tracking: "0.01em" },
   { token: "--text-2xs", size: "11px", weight: 600, tracking: "0.09em" },
 ];
 
@@ -87,9 +87,10 @@ export function StyleGuide() {
         <span className="eyebrow">Design system</span>
         <h1>Headache Intake Assistant</h1>
         <p>
-          Warm near-monochrome neutrals, a blue → white → red brand tricolour, and a flat saturated
-          red reserved for emergencies so an escalation can never read as ordinary chrome. Every
-          value below is live — it comes from the same tokens the app renders with.
+          Cool slate neutrals, one accent hue, flat surfaces. Nothing on the page is a gradient and
+          nothing is textured: depth is carried by a hairline and a shadow, and colour appears only
+          where it means something. Every value below is live — it comes from the same tokens the
+          app renders with.
         </p>
       </header>
 
@@ -98,11 +99,11 @@ export function StyleGuide() {
         <header>
           <h2>Colour</h2>
           <p>
-            Two tiers. Primitives (<code>--warm-500</code>, <code>--blue-600</code>) are the raw
+            Two tiers. Primitives (<code>--slate-500</code>, <code>--sky-700</code>) are the raw
             palette; semantic tokens name a role and are the only ones component CSS may reference.
-            Dark mode re-points the semantic layer and touches nothing else. Note that every accent{" "}
-            <em>surface</em> — soft fills, borders, focus — is blue: red exists only inside the brand
-            gradient, which is what keeps it from competing with danger.
+            Dark mode re-points the semantic layer and touches nothing else. Sky is the only
+            non-status hue in the app, so red, amber and green never compete with a brand colour —
+            if something on this page is red, it is a warning about a patient.
           </p>
         </header>
 
@@ -132,47 +133,48 @@ export function StyleGuide() {
         </div>
       </section>
 
-      {/* --------------------------------------------------- grain gradients */}
+      {/* ---------------------------------------------------------- surfaces */}
       <section className="sg-section">
         <header>
-          <h2>Grain &amp; gradient</h2>
+          <h2>Fills</h2>
           <p>
-            A mesh gradient with a fixed-size film grain tiled over it. The tile never scales with
-            its host — that constant pixel size is what reads as film rather than as a blurry image.
-            Grain is reserved for ambient and emphatic surfaces; it never sits under sustained
-            reading. Tuned subtle: fine specks and no contrast stretch, so it reads as paper tooth
-            rather than as film. Strength lives in two tokens —{" "}
-            <code>--grain-opacity</code> for the page backdrop,{" "}
-            <code>--grain-surface-opacity</code> for discrete surfaces (buttons, banners).
+            There are two, and the difference between them is the most important thing on this page.
+            A <strong>tint</strong> is a status colour at ~10% over the surface, carrying dark text
+            of the same hue — it labels something. A <strong>field</strong> is that colour at full
+            saturation carrying a white label — it interrupts you. Only two things in the app are
+            ever a field: the primary action, and an emergency.
           </p>
         </header>
 
         <div className="sg-grid">
           <div
-            className="sg-tile u-grain"
-            style={{ backgroundImage: "var(--mesh-brand)", borderColor: "var(--border-strong)" }}
+            className="sg-tile sg-tile--on-fill"
+            style={{ backgroundColor: "var(--accent)", color: "var(--accent-contrast)" }}
           >
-            <span className="sg-tile__label">--mesh-brand (reference only, unused)</span>
+            <span className="sg-tile__label">--accent (field · the one action)</span>
           </div>
-          <div className="sg-tile sg-tile--on-accent u-grain u-gradient-accent">
-            <span className="sg-tile__label">--mesh-accent (labelled surfaces)</span>
+          <div
+            className="sg-tile sg-tile--on-fill"
+            style={{ backgroundColor: "var(--danger-fill)", color: "var(--danger-contrast)" }}
+          >
+            <span className="sg-tile__label">--danger-fill (field · emergency)</span>
           </div>
-          <div className="sg-tile sg-tile--on-danger u-grain u-gradient-danger">
-            <span className="sg-tile__label">--mesh-danger + grain</span>
+          <div className="sg-tile" style={{ backgroundColor: "var(--accent-soft)" }}>
+            <span className="sg-tile__label">--accent-soft (tint)</span>
           </div>
-          <div className="sg-tile u-mesh-panel">
-            <span className="sg-tile__label">--mesh-panel (no grain)</span>
+          <div className="sg-tile" style={{ backgroundColor: "var(--warning-soft)" }}>
+            <span className="sg-tile__label">--warning-soft (tint)</span>
           </div>
-          <div className="sg-tile" style={{ backgroundImage: "var(--mesh-ambient)" }}>
-            <span className="sg-tile__label">--mesh-ambient</span>
+          <div className="sg-tile" style={{ backgroundColor: "var(--success-soft)" }}>
+            <span className="sg-tile__label">--success-soft (tint)</span>
           </div>
         </div>
 
         <p className="sg-note">
-          The page backdrop behind this guide is <code>--mesh-ambient</code> plus{" "}
-          <code>--grain-texture</code>, painted on two fixed pseudo-elements isolated inside{" "}
-          <code>body</code>. Both layers drop out under{" "}
-          <code>prefers-reduced-transparency</code>.
+          <code>--danger-fill</code> is the only token that is <em>not</em> re-pointed for dark
+          mode. <code>--danger</code> lightens to red-500 there for dots and text, but white on
+          red-500 is 3.76:1 — below AA. The surface that says "call 911" does not get to fail
+          contrast because it looked better on a dark page.
         </p>
       </section>
 
@@ -181,15 +183,14 @@ export function StyleGuide() {
         <header>
           <h2>Type</h2>
           <p>
-            15px body on a tight eight-step scale. Tracking is optical: display sizes pull in to
-            -0.03em, uppercase micro-labels open out to 0.09em. Two faces:{" "}
-            <code>--font-display</code> (Phenomena) on h1/h2, the wordmark and button labels,{" "}
-            <code>--font-sans</code> everywhere else — samples below render in the display face at
-            the top three steps, so the split is visible here. Three weights are installed, each
-            with one job: <strong>900</strong> for h1 and buttons, <strong>700</strong> for the
-            wordmark, <strong>400</strong> for h2 — where the 500 requested resolves down to Regular
-            rather than being faked, since <code>font-synthesis</code> is off. The face falls back
-            to the sans stack if the files are missing from <code>public/fonts/</code>.
+            One humanist grotesk, 15px body, eight steps. No webfont is loaded and no display face
+            exists: <code>--font-display</code> is an alias of <code>--font-sans</code>, kept so
+            "heading" stays a nameable role — re-point that one token and every heading follows.
+            The stack leads with Inter and otherwise resolves to the platform UI face, so there is
+            no network request and nothing to lay out around. Weight tops out at{" "}
+            <strong>600</strong> for headings; <strong>700</strong> appears once, on the wordmark.
+            Tracking is optical — display pulls in to -0.02em, uppercase micro-labels open to
+            0.09em.
           </p>
         </header>
 
@@ -207,7 +208,6 @@ export function StyleGuide() {
                   fontSize: `var(${step.token})`,
                   fontWeight: step.weight,
                   letterSpacing: step.tracking,
-                  fontFamily: step.display ? "var(--font-display)" : "var(--font-sans)",
                 }}
               >
                 Describe the headache
@@ -277,10 +277,10 @@ export function StyleGuide() {
         <header>
           <h2>Buttons</h2>
           <p>
-            <code>.btn</code> is shape and behaviour; a variant supplies colour. Exactly one gradient
-            button is on screen at a time — that is how you find the thing to press. Labels are the
-            display face at 900, the only place it runs at body size; tracking opens to 0.04em
-            because Black closes Phenomena's already-narrow counters.
+            <code>.btn</code> is shape and behaviour; a variant supplies colour. Exactly one filled
+            button is on screen at a time — that is how you find the thing to press. A solid fill
+            defines its own edge, so unlike the gradient it replaced, primary needs no border to
+            exist against a light page.
           </p>
         </header>
 
@@ -347,8 +347,9 @@ export function StyleGuide() {
         <header>
           <h2>Banners</h2>
           <p>
-            Danger takes the grain gradient because it has to win against everything else on the
-            page. Warning stays a flat tint so the two are never confused at speed.
+            Danger is a saturated field; warning is a tint. That is a difference in kind, not
+            degree, which is what keeps the two apart at a glance — you do not have to read the
+            copy to know which one is the emergency.
           </p>
         </header>
 

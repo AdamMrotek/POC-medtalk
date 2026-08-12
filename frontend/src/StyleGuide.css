@@ -127,7 +127,7 @@
 .sg-scale__bar {
   height: 14px;
   border-radius: var(--radius-xs);
-  background-image: var(--mesh-accent);
+  background-color: var(--accent);
 }
 
 .sg-scale__label {
@@ -157,21 +157,16 @@
   color: var(--text-faint);
 }
 
-/* Labels sitting on a gradient fill take that fill's own contrast token rather
-   than a hardcoded white — the accent ramp passes through white and would eat
-   a light label. */
-.sg-tile--on-accent {
-  color: var(--accent-contrast);
-  border-color: var(--border-strong);
+/* A label on a saturated field inherits that field's own contrast token rather
+   than assuming white — --accent-contrast flips to near-black in dark mode,
+   where the accent lightens to sky-400. */
+.sg-tile--on-fill {
+  border-color: transparent;
 }
 
-.sg-tile--on-danger .sg-tile__label {
-  color: rgb(255 255 255 / 0.85);
-}
-
-.sg-tile--on-accent .sg-tile__label {
+.sg-tile--on-fill .sg-tile__label {
   color: inherit;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .sg-radius-demo {

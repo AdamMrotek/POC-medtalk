@@ -1,9 +1,7 @@
 /* Design system entry point. Order is load-bearing: tokens define the variables
-   grain and base consume, and grain defines the textures base's buttons and
-   banners reference. */
-@import "./styles/fonts.css";
+   base consumes. No webfont layer — the type stack is system-resolved, see the
+   TYPE block in tokens.css. */
 @import "./styles/tokens.css";
-@import "./styles/grain.css";
 @import "./styles/base.css";
 
 #root {

@@ -1,9 +1,9 @@
 /* ============================================================================
-   DESIGN TOKENS
+   DESIGN TOKENS — "Clinical Calm"
    ----------------------------------------------------------------------------
    Two tiers, and the distinction matters:
 
-   1. PRIMITIVES (--warm-500, --blue-600, --space-4) are the raw palette and
+   1. PRIMITIVES (--slate-500, --sky-700, --space-4) are the raw palette and
       scales. They carry no meaning and are theme-independent.
    2. SEMANTIC tokens (--text-secondary, --accent, --border) name a *role*.
       They are re-pointed per colour scheme.
@@ -11,91 +11,75 @@
    Component CSS may only reference semantic tokens. If a component reaches for
    a primitive, the role it needs is missing — add it here instead. That rule is
    the whole reason dark mode is one block of overrides rather than a rewrite.
+
+   Every ratio noted inline was measured, not estimated. Re-measure if you move
+   a surface: several of these values were chosen *because* the obvious pick
+   failed. See styles/README.md for the four that did.
    ============================================================================ */
 
 :root {
   /* ---------------------------------------------------------------- PRIMITIVES
-     Neutrals run warm in light mode (paper, not screen) and cool in dark mode,
-     which is how the accent stays the only chromatic thing on the page. */
+     Cool slate neutrals in both schemes. There is no warm/cool split any more:
+     one ramp, re-pointed. Chroma on the page comes from exactly one hue (sky)
+     plus the three status colours, and nothing else. */
 
-  /* Warm neutrals — light scheme */
-  --warm-0: #ffffff;
-  --warm-25: #fcfcfb;
-  --warm-50: #fafaf9;
-  --warm-100: #f5f5f4;
-  --warm-200: #e7e5e4;
-  --warm-300: #d6d3d1;
-  --warm-400: #a8a29e;
-  --warm-500: #78716c;
-  --warm-600: #57534e;
-  --warm-700: #44403c;
-  --warm-800: #292524;
-  --warm-900: #1c1917;
-  --warm-950: #0c0a09;
+  --slate-0: #ffffff;
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-450: #a4b3c4; /* dark-scheme tertiary — between 400 and 300 */
+  --slate-500: #64748b;
+  --slate-550: #5b6a7d; /* light-scheme faint; slate-500 misses AA on sunken */
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --slate-950: #020617;
+  --slate-980: #010409; /* dark sunken — below the page, not above it */
 
-  /* Cool neutrals — dark scheme */
-  --cool-950: #09090b;
-  --cool-900: #131316;
-  --cool-850: #1a1a1e;
-  --cool-800: #232328;
-  --cool-700: #2e2e34;
-  --cool-600: #3f3f46;
-  --cool-500: #71717a;
-  --cool-450: #85858f;
-  --cool-400: #a1a1aa;
-  --cool-350: #c2c2c9;
-  --cool-300: #d4d4d8;
-  --cool-100: #f4f4f5;
-  --cool-50: #fafafa;
-
-  /* Accent ramp — blue through white to red. Blue is the working colour (links,
-     focus, active state); red is reserved for danger everywhere except inside
-     the brand gradient itself. The 100/200 tints exist only to build the
-     lightened button fill — they are never a text or border colour. */
-  --blue-100: #dbeafe;
-  --blue-200: #bfdbfe;
-  --blue-300: #93c5fd;
-  --blue-400: #60a5fa;
-  --blue-500: #3b82f6;
-  --blue-600: #2563eb;
-  --blue-700: #1d4ed8;
-  --white: #ffffff;
+  /* Accent ramp — sky. One hue, no gradient, no second brand colour. Sky was
+     chosen over teal specifically because teal sits next to --success on the
+     wheel, and "the interactive colour" and "the everything-is-fine colour"
+     must not be confusable in a clinical UI. */
+  --sky-100: #e0f2fe;
+  --sky-200: #bae6fd;
+  --sky-300: #7dd3fc;
+  --sky-400: #38bdf8;
+  --sky-500: #0ea5e9;
+  --sky-600: #0284c7;
+  --sky-700: #0369a1;
+  --sky-800: #075985;
 
   /* Status ramps */
-  --red-100: #fee2e2;
-  --red-200: #fecaca;
   --red-400: #f87171;
   --red-500: #ef4444;
   --red-600: #dc2626;
   --red-700: #b91c1c;
   --amber-400: #fbbf24;
-  --amber-500: #f59e0b;
   --amber-600: #d97706;
-  --amber-700: #b45309;
+  --amber-800: #92400e;
   --green-400: #4ade80;
-  --green-500: #22c55e;
   --green-600: #16a34a;
-  --green-700: #15803d;
+  --green-800: #166534;
 
   /* ------------------------------------------------------------------ TYPE
-     15px body. Clinical text is read carefully, not skimmed, so the scale is
-     tight — six usable steps rather than a huge display range. */
+     ONE face. The display face is gone; --font-display remains as an alias so
+     that "heading" is still a nameable role, but it resolves to the same stack
+     as --font-sans. Point it somewhere else and every heading follows.
+
+     No webfont is loaded. "Inter" leads the stack so a local install is used
+     when present, and otherwise this renders in the platform UI face (SF Pro on
+     macOS/iOS, Segoe on Windows, Roboto on Android) — all humanist grotesks,
+     all metrically close, none of them a network request. If you want Inter
+     guaranteed, self-host it and add an @font-face; do not add a CDN <link>,
+     which would leak every page view to a third party. */
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-sans);
   --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
     "Liberation Mono", monospace;
-
-  /* Display face — headings, the wordmark, the hero. Phenomena (Radomir Tinkov
-     & Plamen Motev, Fontfabric) is a narrow geometric sans: tall, tightly set,
-     and noticeably condensed against --font-sans. That proportion is why it is
-     scoped to large type rather than made the body font — at 13px the narrow
-     counters cost more legibility than the character is worth, and clinical
-     values like "7 out of 10" are read carefully rather than skimmed. To
-     promote it anyway, point --font-sans at it too; nothing else changes.
-     Falls back cleanly to the sans stack until the files are installed — see
-     public/fonts/README.md. */
-  --font-display: "Phenomena", "Inter", -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   --text-2xs: 0.6875rem; /* 11px — micro labels, counts */
   --text-xs: 0.75rem; /* 12px — eyebrow labels, status pills */
@@ -104,31 +88,29 @@
   --text-md: 1.0625rem; /* 17px — lead paragraph */
   --text-lg: 1.25rem; /* 20px — panel headings */
   --text-xl: 1.625rem; /* 26px — section titles */
-  --text-display: clamp(2rem, 1.35rem + 2.6vw, 3rem); /* page title */
+  --text-display: clamp(1.875rem, 1.3rem + 2.3vw, 2.75rem); /* page title */
 
-  /* The display face is installed at 400, 700 and 900 only, and body sets
-     `font-synthesis: none`, so nothing is ever faked. A 500/600 request on a
-     display-face element resolves down to Phenomena Regular by the CSS
-     weight-matching rules rather than rendering a smeared fake — that is why
-     h2 at --weight-medium is Regular. The two heavy steps are deliberate and
-     each has one job: --weight-bold is the wordmark, --weight-black is h1 and
-     button labels. */
+  /* With one humanist face doing every job, weight is the only thing separating
+     a heading from body text — so the heavy end comes down. 900 is gone: it
+     existed to give a narrow display face presence, and a grotesk at 800 on a
+     medical intake screen reads as shouting. Headings top out at 600. */
   --weight-normal: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
-  --weight-black: 900;
 
-  --leading-tight: 1.15;
+  --leading-tight: 1.2;
   --leading-snug: 1.35;
   --leading-normal: 1.55;
   --leading-relaxed: 1.7;
 
-  /* Optical tracking: tighter as type gets larger, looser as it gets smaller. */
-  --tracking-display: -0.03em;
-  --tracking-tight: -0.015em;
+  /* Optical tracking: tighter as type gets larger, looser as it gets smaller.
+     The display step is less negative than it was — that -0.03em was tuned for
+     a condensed face and pinches a grotesk. */
+  --tracking-display: -0.02em;
+  --tracking-tight: -0.011em;
   --tracking-normal: 0em;
-  --tracking-wide: 0.04em;
+  --tracking-wide: 0.01em;
   --tracking-caps: 0.09em; /* uppercase eyebrows need the extra air */
 
   /* ----------------------------------------------------------------- SPACE
@@ -169,56 +151,64 @@
   /* ------------------------------------------------------- SEMANTIC — LIGHT */
   color-scheme: light;
 
-  /* Surfaces, back to front */
-  --bg: var(--warm-50);
-  --surface: var(--warm-0);
-  --surface-raised: var(--warm-0);
-  --surface-sunken: var(--warm-100);
-  --surface-inset: rgba(12, 10, 9, 0.035);
+  /* Surfaces, back to front. The page is a flat field — no mesh, no gradient,
+     no grain. Cards separate from it by being lighter (#fff on #f8fafc), by a
+     hairline, and by a shadow; that is the whole depth model. */
+  --bg: var(--slate-50);
+  --surface: var(--slate-0);
+  --surface-raised: var(--slate-0);
+  --surface-sunken: var(--slate-100);
+  --surface-inset: rgba(15, 23, 42, 0.04);
 
-  /* Text. Four steps, and every one clears WCAG AA (4.5:1) against --bg, which
-     is the worst case in this scheme. --text-faint carries the uppercase field
-     labels in the notes panel — those are content, not decoration, so the tier
-     bottoms out at 4.59:1 rather than dropping to a decorative grey. */
-  --text-primary: var(--warm-950); /* 18.9:1 */
-  --text-secondary: var(--warm-700); /*  9.8:1 */
-  --text-tertiary: var(--warm-600); /*  7.3:1 */
-  --text-faint: var(--warm-500); /*  4.6:1 */
-  --text-inverted: var(--warm-0);
+  /* Text. Four steps. Every one clears WCAG AA (4.5:1) against the worst-case
+     background in this scheme, which is --surface-sunken, not --bg. */
+  --text-primary: var(--slate-900); /* 17.1:1 on --bg */
+  --text-secondary: var(--slate-700); /*  9.9:1 on --bg */
+  --text-tertiary: var(--slate-600); /*  7.2:1 on --bg */
+  /* slate-500 (#64748b) is the obvious pick here and it FAILS: 4.55:1 on --bg
+     but 4.34:1 on --surface-sunken. This half-step down clears both. */
+  --text-faint: var(--slate-550); /*  5.3:1 on --bg, 5.0:1 on sunken */
+  --text-inverted: var(--slate-0);
 
   /* Lines */
-  --border: rgba(12, 10, 9, 0.09);
-  --border-strong: rgba(12, 10, 9, 0.16);
-  --border-faint: rgba(12, 10, 9, 0.05);
+  --border: var(--slate-200);
+  --border-strong: var(--slate-300);
+  --border-faint: rgba(15, 23, 42, 0.06);
 
-  /* Accent — blue. Every accent *surface* (soft fills, borders, focus, links)
-     is blue only. The rose end of the ramp is confined to gradients. */
-  --accent: var(--blue-600);
-  --accent-hover: var(--blue-700);
-  --accent-text: var(--blue-700);
-  --accent-soft: rgba(37, 99, 235, 0.09);
-  --accent-border: rgba(37, 99, 235, 0.32);
-  /* Near-black, not white: the brand fill passes through pure white at its
-     midpoint, so a light label would disappear there. See --mesh-accent. */
-  --accent-contrast: var(--warm-950);
+  /* Accent — sky, and the only chromatic thing in the chrome.
+     --accent is sky-700, NOT the sky-500/600 that reads as the "brand" step:
+     white on sky-600 is 4.10:1 and fails AA, and --accent is a fill that
+     carries a label. sky-700 clears it at 5.93:1. */
+  --accent: var(--sky-700);
+  --accent-hover: var(--sky-800);
+  --accent-text: var(--sky-800); /* 7.6:1 on --surface */
+  --accent-soft: rgba(2, 132, 199, 0.1);
+  --accent-border: rgba(3, 105, 161, 0.34);
+  --accent-contrast: var(--slate-0); /* 5.9:1 on --accent */
 
-  /* Status. Danger is a deeper, browner red than the gradient's rose tail, and
-     it is the only red that ever appears flat. See --mesh-danger below for how
-     an emergency stays distinguishable now that the brand ramp ends in red. */
+  /* Status. Nothing else in the app is red, amber or green, so these three
+     carry their meaning unaided — there is no brand ramp to compete with. */
   --danger: var(--red-600);
   --danger-hover: var(--red-700);
   --danger-text: var(--red-700);
-  --danger-soft: rgba(220, 38, 38, 0.09);
+  --danger-soft: rgba(220, 38, 38, 0.1);
   --danger-border: rgba(220, 38, 38, 0.3);
-  --danger-contrast: #ffffff;
+  --danger-contrast: #ffffff; /* 4.8:1 on --danger-fill */
+  /* The one token deliberately NOT re-pointed in dark mode — see the note in
+     the dark block. Emergency fills read from this, not from --danger. */
+  --danger-fill: var(--red-600);
+  --danger-fill-hover: var(--red-700);
 
-  --warning: var(--amber-500);
-  --warning-text: var(--amber-700);
-  --warning-soft: rgba(245, 158, 11, 0.12);
-  --warning-border: rgba(217, 119, 6, 0.32);
+  /* amber-500 was the old --warning and fails 3:1 as a dot or border (2.15:1).
+     amber-600 clears it, and the text step drops to amber-800 to stay legible
+     on the tint amber-600 produces. */
+  --warning: var(--amber-600); /* 3.2:1 on --surface */
+  --warning-text: var(--amber-800); /* 6.2:1 on --warning-soft */
+  --warning-soft: rgba(217, 119, 6, 0.12);
+  --warning-border: rgba(217, 119, 6, 0.34);
 
-  --success: var(--green-600);
-  --success-text: var(--green-700);
+  --success: var(--green-600); /* 3.3:1 on --surface */
+  --success-text: var(--green-800); /* 6.4:1 on --success-soft */
   --success-soft: rgba(22, 163, 74, 0.1);
   --success-border: rgba(22, 163, 74, 0.3);
 
@@ -227,141 +217,79 @@
   --focus-ring-offset: var(--bg);
 
   /* Elevation. Light mode gets real shadows; dark mode swaps most of the lift
-     for a hairline top highlight (see the dark block). */
-  --shadow-xs: 0 1px 2px rgba(12, 10, 9, 0.05);
-  --shadow-sm: 0 1px 2px rgba(12, 10, 9, 0.04), 0 2px 6px rgba(12, 10, 9, 0.05);
-  --shadow-md: 0 2px 4px rgba(12, 10, 9, 0.04), 0 8px 20px rgba(12, 10, 9, 0.07);
-  --shadow-lg: 0 4px 8px rgba(12, 10, 9, 0.04),
-    0 16px 40px rgba(12, 10, 9, 0.09);
-  /* The primary fill is now pale, so it cannot rely on a saturated glow to read
-     as raised — most of this is a neutral cast shadow, with only a hint of blue
-     to keep it tied to the accent. */
-  --shadow-accent: 0 1px 2px rgba(12, 10, 9, 0.07),
-    0 6px 18px rgba(37, 99, 235, 0.16), 0 12px 32px rgba(12, 10, 9, 0.06);
-  --shadow-danger: 0 2px 8px rgba(220, 38, 38, 0.24),
-    0 8px 24px rgba(220, 38, 38, 0.18);
+     for a hairline top highlight (see the dark block). Tightened and cooled —
+     these are slate-tinted, not neutral black, so a card reads as lifted off a
+     cool page rather than smudged onto it. */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04),
+    0 2px 6px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 2px 4px rgba(15, 23, 42, 0.04),
+    0 8px 20px rgba(15, 23, 42, 0.07);
+  --shadow-lg: 0 4px 8px rgba(15, 23, 42, 0.04),
+    0 16px 40px rgba(15, 23, 42, 0.09);
+  --shadow-accent: 0 1px 2px rgba(15, 23, 42, 0.08),
+    0 4px 12px rgba(3, 105, 161, 0.22);
+  --shadow-danger: 0 1px 2px rgba(15, 23, 42, 0.08),
+    0 4px 12px rgba(220, 38, 38, 0.22);
   --highlight-inset: none;
-
-  /* ------------------------------------------------------------ GRAIN + MESH
-     Defined here as tokens (not in grain.css) because the alphas differ per
-     scheme — the same gradient that reads as a tint on paper reads as a glow
-     on black, and has to be pulled back hard. */
-  --grain-opacity: 0.5;
-  --grain-blend: multiply;
-  --grain-size: 140px;
-
-  /* Strength of the grain tiled over discrete surfaces (buttons, banners) as
-     opposed to the page backdrop. One dial, so "less grain" is a single edit
-     rather than three hardcoded opacities in component CSS. */
-  --grain-surface-opacity: 0.44;
-
-  /* The tricolour at page scale: blue anchors the top-left, red answers from
-     the top-right, and the paper between them supplies the white. */
-  --mesh-ambient: radial-gradient(
-      900px 520px at 12% -8%,
-      rgba(37, 99, 235, 0.3),
-      transparent 62%
-    ),
-    radial-gradient(
-      760px 460px at 88% 2%,
-      rgba(220, 38, 38, 0.15),
-      transparent 58%
-    );
-
-  /* ---- the brand tricolour, at two strengths ----
-
-     --mesh-brand is the ramp at full saturation. NOTHING IN THE APP CONSUMES
-     IT — the logo mark it was built for is gone and the wordmark carries the
-     brand now. It stays as the canonical statement of the ramp (the styleguide
-     renders it, and --mesh-accent is the same sweep lightened), so re-stop both
-     together. Do not reach for it as a surface: blue and red both need light
-     text, the midpoint needs dark text, so no single label colour survives it.
-
-     --mesh-accent is the same ramp lightened, for surfaces that DO carry a
-     label (the primary button). Dark text clears 4.5:1 across the whole sweep;
-     the tints are the 100/200 steps rather than the 600s for exactly that
-     reason. Keep the two in sync if you re-angle or re-stop either. */
-  --mesh-brand: linear-gradient(
-    135deg,
-    var(--blue-600) 0%,
-    var(--white) 50%,
-    var(--red-600) 100%
-  );
-
-  --mesh-accent: linear-gradient(
-    135deg,
-    var(--blue-200) 0%,
-    var(--white) 50%,
-    var(--red-200) 100%
-  );
-
-  /* Deliberately NOT a sweep. An emergency is the one flat, fully saturated red
-     field in the system — that flatness, against a brand ramp that visibly
-     travels blue → white → red, is what keeps the two apart at a glance. */
-  --mesh-danger: linear-gradient(
-    135deg,
-    var(--red-700) 0%,
-    var(--red-600) 100%
-  );
-
-  --mesh-panel: radial-gradient(
-    620px 320px at 100% 0%,
-    rgba(37, 99, 235, 0.1),
-    transparent 68%
-  );
 }
 
 /* ============================== DARK SCHEME ==============================
-   Only semantic tokens are re-pointed. Note what changes beyond colour:
-   grain blends with `screen` instead of `multiply` (multiply is invisible on
-   black), mesh alphas drop by roughly a third, and elevation moves from cast
-   shadow to a 1px top highlight. */
+   Only semantic tokens are re-pointed. The one structural difference is
+   elevation: a cast shadow on near-black reads as nothing, so lift moves to a
+   1px top highlight instead. */
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
 
-    --bg: var(--cool-950);
-    --surface: var(--cool-900);
-    --surface-raised: var(--cool-850);
-    --surface-sunken: #0e0e11;
+    --bg: var(--slate-950);
+    --surface: var(--slate-900);
+    --surface-raised: var(--slate-800);
+    --surface-sunken: var(--slate-980);
     --surface-inset: rgba(255, 255, 255, 0.04);
 
-    /* Same four steps, measured against --surface (the worst case here, since
-       light text on the lighter of the two backgrounds is the tighter one). */
-    --text-primary: var(--cool-50); /* 17.8:1 */
-    --text-secondary: var(--cool-350); /* 10.5:1 */
-    --text-tertiary: var(--cool-400); /*  7.2:1 */
-    --text-faint: var(--cool-450); /*  5.1:1 */
-    --text-inverted: var(--cool-950);
+    /* Measured against --surface-raised (#1e293b), which is the worst case
+       here — light text on the lightest surface is the tighter pairing. */
+    --text-primary: var(--slate-50); /* 14.0:1 on raised */
+    --text-secondary: var(--slate-300); /*  9.9:1 on raised */
+    --text-tertiary: var(--slate-450); /*  6.8:1 on raised */
+    --text-faint: var(--slate-400); /*  5.7:1 on raised */
+    --text-inverted: var(--slate-950);
 
     --border: rgba(255, 255, 255, 0.1);
     --border-strong: rgba(255, 255, 255, 0.19);
     --border-faint: rgba(255, 255, 255, 0.06);
 
-    /* Saturated mid-tones go muddy on dark surfaces — the accent lightens by
-       two steps so body-size text against --surface still clears 4.5:1. */
-    --accent: var(--blue-400);
-    --accent-hover: var(--blue-300);
-    --accent-text: var(--blue-300);
-    --accent-soft: rgba(96, 165, 250, 0.16);
-    --accent-border: rgba(96, 165, 250, 0.38);
-    --accent-contrast: var(--cool-950);
+    /* Saturated mid-tones go muddy on dark surfaces, so the accent lightens by
+       three steps — and that flips the label on an accent fill from white to
+       near-black, which is what --accent-contrast is for. */
+    --accent: var(--sky-400);
+    --accent-hover: var(--sky-300);
+    --accent-text: var(--sky-300); /* 10.7:1 on --surface */
+    --accent-soft: rgba(56, 189, 248, 0.16);
+    --accent-border: rgba(56, 189, 248, 0.38);
+    --accent-contrast: var(--slate-950); /* 9.4:1 on --accent */
 
     --danger: var(--red-500);
     --danger-hover: var(--red-400);
-    --danger-text: var(--red-400);
+    --danger-text: var(--red-400); /* 5.3:1 on --danger-soft */
     --danger-soft: rgba(248, 113, 113, 0.14);
     --danger-border: rgba(248, 113, 113, 0.34);
     --danger-contrast: #ffffff;
+    /* --danger-fill is NOT re-pointed. --danger lightens to red-500 for dots,
+       borders and text, but white on red-500 is 3.76:1 — and the surface that
+       says "call 911" does not get to fail AA because it looked better on a
+       dark page. The emergency banner and the End-conversation button read
+       from --danger-fill for exactly this reason. */
 
     --warning: var(--amber-400);
-    --warning-text: var(--amber-400);
+    --warning-text: var(--amber-400); /* 8.1:1 on --warning-soft */
     --warning-soft: rgba(251, 191, 36, 0.14);
     --warning-border: rgba(251, 191, 36, 0.34);
 
     --success: var(--green-400);
-    --success-text: var(--green-400);
+    --success-text: var(--green-400); /* 7.9:1 on --success-soft */
     --success-soft: rgba(74, 222, 128, 0.13);
     --success-border: rgba(74, 222, 128, 0.32);
 
@@ -372,52 +300,9 @@
     --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.45), 0 8px 20px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.45), 0 16px 40px rgba(0, 0, 0, 0.55);
     --shadow-accent: 0 2px 10px rgba(0, 0, 0, 0.5),
-      0 10px 30px rgba(96, 165, 250, 0.18);
-    --shadow-danger: 0 2px 10px rgba(239, 68, 68, 0.35),
-      0 10px 30px rgba(239, 68, 68, 0.22);
+      0 6px 20px rgba(56, 189, 248, 0.16);
+    --shadow-danger: 0 2px 10px rgba(0, 0, 0, 0.5),
+      0 6px 20px rgba(239, 68, 68, 0.2);
     --highlight-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-
-    /* Screen-blended grain lightens, so on near-black it lifts the floor of the
-       whole page. Held below the light value for that reason — this reads about
-       as strong as 0.5 does on paper, despite the smaller number. */
-    --grain-opacity: 0.36;
-    --grain-blend: screen;
-
-    /* There is no paper here to supply the white, so a faint neutral glow along
-       the bottom stands in for it and the tricolour still resolves. */
-    --mesh-ambient: radial-gradient(
-        900px 520px at 12% -8%,
-        rgba(59, 130, 246, 0.26),
-        transparent 62%
-      ),
-      radial-gradient(
-        760px 460px at 88% 2%,
-        rgba(239, 68, 68, 0.14),
-        transparent 58%
-      ),
-      radial-gradient(
-        800px 420px at 55% 104%,
-        rgba(255, 255, 255, 0.06),
-        transparent 60%
-      );
-
-    /* --mesh-brand and --mesh-accent are NOT re-pointed for dark mode. The pale
-       fill is what makes the primary button pop against a near-black page, and
-       its near-black label is already the higher-contrast pairing here. */
-
-    /* Same fill as light mode. The lighter red-500 read better against a dark
-       page but dropped white text to 3.76:1, and the emergency banner is the
-       one surface in the app that cannot trade legibility for looks. */
-    --mesh-danger: linear-gradient(
-      135deg,
-      var(--red-700) 0%,
-      var(--red-600) 100%
-    );
-
-    --mesh-panel: radial-gradient(
-      620px 320px at 100% 0%,
-      rgba(96, 165, 250, 0.13),
-      transparent 68%
-    );
   }
 }

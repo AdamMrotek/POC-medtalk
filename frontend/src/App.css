@@ -34,10 +34,10 @@
   border-bottom: 1px solid var(--border-faint);
 }
 
-/* There is no logo mark — the type is the mark. That puts the whole burden of
-   the lockup on the face, which is why this is the one place in the app that
-   takes the display face at its bold weight: at 17px, Phenomena Regular is too
-   quiet to read as a brand rather than as a stray line of header text. */
+/* There is no logo mark — the type is the mark. With one face across the app,
+   weight is all that separates the wordmark from an ordinary header label, so
+   this is the only place that uses --weight-bold; everything else tops out at
+   semibold. Shrink it toward --text-base if you must, not below. */
 .brand {
   min-width: 0;
   font-family: var(--font-display);
@@ -94,10 +94,9 @@
 }
 
 /* Standing disclaimer. Deliberately quiet — it is necessary, but it is not what
-   the patient is here to read. Uses --text-tertiary rather than --text-faint
-   because it is the only small text in the app sitting directly on the grained
-   backdrop, and grain adds local luminance variance that a flat contrast ratio
-   does not capture. Cheap headroom; keep it even at low grain settings. */
+   the patient is here to read. Kept at --text-tertiary rather than
+   --text-faint: it is 12px sitting directly on the page rather than on a card,
+   and it is the one piece of small print with legal weight. */
 .hero__note {
   font-size: var(--text-xs);
   color: var(--text-tertiary);
