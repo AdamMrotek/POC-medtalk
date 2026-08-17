@@ -205,14 +205,35 @@ export function isToolName(name: string): name is ToolName {
   return name in tools;
 }
 
+/** Tools allowed in `state`. The state machine is the authorization table, so which
+ * schemas the model is even shown follows from it rather than being listed twice. */
+function allowedTools(state: ConversationState): ToolDefinition[] {
+  return Object.values(tools).filter((tool) => isToolAllowed(tool.name, state));
+}
+
 /** The tool schemas the model should be given while in `state`. */
 export function toRealtimeToolSchemas(state: ConversationState) {
-  return Object.values(tools)
-    .filter((tool) => isToolAllowed(tool.name, state))
-    .map((tool) => ({
-      type: "function" as const,
+  return allowedTools(state).map((tool) => ({
+    type: "function" as const,
+    name: tool.name,
+    description: tool.description,
+    parameters: tool.parameters,
+  }));
+}
+
+/**
+ * The same tools in Chat Completions shape, which nests the definition under `function`
+ * rather than flattening it. A sibling rather than a change to `toRealtimeToolSchemas`,
+ * so the existing WebRTC path keeps working unchanged while the cascaded pipeline is
+ * benchmarked alongside it.
+ */
+export function toChatToolSchemas(state: ConversationState) {
+  return allowedTools(state).map((tool) => ({
+    type: "function" as const,
+    function: {
       name: tool.name,
       description: tool.description,
       parameters: tool.parameters,
-    }));
+    },
+  }));
 }

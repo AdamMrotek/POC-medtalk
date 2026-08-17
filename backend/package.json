@@ -10,18 +10,24 @@
     "build": "tsc -p tsconfig.json",
     "pretest": "npm run build -w @threepio/shared",
     "test": "tsx --test \"src/**/*.test.ts\"",
+    "bench": "tsx src/bench/latency.ts",
+    "bench:tts": "tsx src/bench/tts.ts",
+    "bench:realtime": "tsx src/bench/realtime.ts",
+    "bench:fixtures": "tsx src/bench/fixtures.ts",
     "start": "node dist/index.js"
   },
   "dependencies": {
     "@threepio/shared": "*",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^22.5.4",
+    "@types/ws": "^8.5.12",
     "tsx": "^4.19.1",
     "typescript": "^5.6.2"
   }
