@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { INTAKE_FIELDS, type ConversationState, type IntakeRecord } from "@threepio/shared";
+import { Check, ChevronRight, LoaderCircle, TriangleAlert, type LucideIcon } from "lucide-react";
+import { Icon } from "./Icon";
 import { List } from "./List";
 import type { ConnectionState, TranscriptTurn } from "./useRealtimeConversation";
 
@@ -135,6 +137,18 @@ const STATUS_VARIANT: Record<StageStatus, string> = {
   pending: "pill",
 };
 
+/**
+ * A glyph per status, so complete / escalated / in-progress differ in shape and
+ * not only in the pill's colour. `pending` has none on purpose: it is the
+ * absence of an outcome, and drawing something for "nothing has happened yet"
+ * would give it more presence than the three states that did happen.
+ */
+const STATUS_ICON: Partial<Record<StageStatus, LucideIcon>> = {
+  active: LoaderCircle,
+  done: Check,
+  failed: TriangleAlert,
+};
+
 interface Props {
   transcript: TranscriptTurn[];
   stage: ConversationState;
@@ -213,6 +227,7 @@ export function ConversationTimeline({
           const meta = STAGE_META[group.stage];
           const isLast = index === groups.length - 1;
           const status = stageStatus(group, isLast, isLive, intakeRecord);
+          const StatusGlyph = STATUS_ICON[status];
           // Finished stages roll up to a single timeline step; the newest one stays open.
           const expanded = overrides[group.stage] ?? isLast;
 
@@ -237,20 +252,34 @@ export function ConversationTimeline({
                   <span className="stage-agent">{meta.agent}</span>
                   <span className="stage-title">{meta.title}</span>
                 </span>
-                <span className={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</span>
-                <span className="stage-chevron">{expanded ? "▾" : "▸"}</span>
+                <span className={STATUS_VARIANT[status]}>
+                  {StatusGlyph && (
+                    <Icon as={StatusGlyph} size={13} className={status === "active" ? "spinner" : undefined} />
+                  )}
+                  {STATUS_LABEL[status]}
+                </span>
+                <Icon as={ChevronRight} className="stage-chevron" />
                 <span className="stage-summary">{stageSummary(group, intakeRecord, emergencyReason)}</span>
                 {!expanded && group.turns.length > 0 && (
                   <span className="stage-turn-count">{group.turns.length} messages</span>
                 )}
               </button>
 
-              {expanded && (
+              {/* Rendered whether or not it is open: the 0fr -> 1fr collapse in
+                  App.css needs something to measure, and unmounting would also
+                  replay every turn's entry animation on re-expand. `inert`
+                  keeps a closed stage out of both the tab order and the
+                  accessibility tree, which is what the old unmount did for
+                  free. */}
+              <div className="stage-body-wrap" inert={!expanded}>
                 <div className="stage-body">
                   {group.stage === "alert" && (
                     <div className="stage-alert">
-                      <strong>Red flag reported.</strong> {emergencyReason} Normal intake questions
-                      have stopped; the patient was told to seek emergency care.
+                      <Icon as={TriangleAlert} className="stage-alert__icon" />
+                      <span>
+                        <strong>Red flag reported.</strong> {emergencyReason} Normal intake questions
+                        have stopped; the patient was told to seek emergency care.
+                      </span>
                     </div>
                   )}
                   {group.turns.length === 0 && <p className="stage-waiting">Waiting for the assistant…</p>}
@@ -261,7 +290,7 @@ export function ConversationTimeline({
                     </div>
                   ))}
                 </div>
-              )}
+              </div>
             </section>
           );
         })}

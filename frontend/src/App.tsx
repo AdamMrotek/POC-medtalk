@@ -1,5 +1,16 @@
 import "./App.css";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  CalendarClock,
+  CircleAlert,
+  LoaderCircle,
+  Mic,
+  PhoneOff,
+  TriangleAlert,
+} from "lucide-react";
 import { ConnectionPill } from "./ConnectionPill";
+import { Icon } from "./Icon";
 import { ConversationTimeline } from "./ConversationTimeline";
 import { IntakePanel } from "./IntakePanel";
 import { useRealtimeConversation } from "./useRealtimeConversation";
@@ -43,6 +54,15 @@ function App() {
             onClick={isConnected ? stop : start}
             disabled={isConnecting}
           >
+            {/* Connecting is the one moment in the app with nothing to report
+                and no progress to show, so it gets the only spinner. The other
+                two glyphs just restate the label — the button is a phone
+                call, and it should look like one. */}
+            <Icon
+              as={isConnecting ? LoaderCircle : isConnected ? PhoneOff : Mic}
+              size={18}
+              className={isConnecting ? "spinner" : undefined}
+            />
             {isConnecting
               ? "Connecting…"
               : isConnected
@@ -60,6 +80,7 @@ function App() {
         <div className="banner-stack">
           {emergency && (
             <div className="banner banner--danger" role="alert">
+              <Icon as={TriangleAlert} size={18} className="banner__icon" />
               <span>
                 <strong>Seek emergency care now.</strong> {emergency.reason} If this is a medical
                 emergency, call 911 or go to the nearest emergency room.
@@ -69,6 +90,7 @@ function App() {
 
           {intakeRecord?.rescheduleRequested && (
             <div className="banner banner--warning" role="status">
+              <Icon as={CalendarClock} size={18} className="banner__icon" />
               <span>
                 <strong>Reschedule requested.</strong>{" "}
                 {intakeRecord.rescheduleRequested.reason ||
@@ -79,6 +101,7 @@ function App() {
 
           {error && (
             <div className="banner banner--error" role="alert">
+              <Icon as={CircleAlert} size={18} className="banner__icon" />
               <span>{error}</span>
             </div>
           )}
@@ -111,7 +134,10 @@ function App() {
           {dataChannelLog.map((entry) =>
             entry.count !== undefined ? (
               <div key={entry.id} className={`dc-entry dc-entry--${entry.direction} dc-entry--stream`}>
-                <span className="dc-entry-direction">{entry.direction === "out" ? "→ sent" : "← received"}</span>
+                <span className="dc-entry-direction">
+                  <Icon as={entry.direction === "out" ? ArrowUpRight : ArrowDownLeft} size={13} />
+                  {entry.direction === "out" ? "sent" : "received"}
+                </span>
                 <span className="dc-entry-type">
                   streaming delta{entry.deltaTypes && entry.deltaTypes.length > 0 ? ` (${entry.deltaTypes.join(", ")})` : ""}
                 </span>
@@ -120,7 +146,10 @@ function App() {
             ) : (
               <details key={entry.id} className={`dc-entry dc-entry--${entry.direction}`}>
                 <summary className="dc-entry-header">
-                  <span className="dc-entry-direction">{entry.direction === "out" ? "→ sent" : "← received"}</span>
+                  <span className="dc-entry-direction">
+                    <Icon as={entry.direction === "out" ? ArrowUpRight : ArrowDownLeft} size={13} />
+                    {entry.direction === "out" ? "sent" : "received"}
+                  </span>
                   <span className="dc-entry-type">{entry.type}</span>
                   <span className="dc-entry-time">{new Date(entry.timestamp).toLocaleTimeString()}</span>
                 </summary>

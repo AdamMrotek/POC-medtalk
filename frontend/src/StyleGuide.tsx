@@ -1,6 +1,19 @@
 import "./App.css";
 import "./StyleGuide.css";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  CalendarClock,
+  Check,
+  ChevronRight,
+  CircleAlert,
+  LoaderCircle,
+  Mic,
+  PhoneOff,
+  TriangleAlert,
+} from "lucide-react";
 import { ConnectionPill } from "./ConnectionPill";
+import { Icon } from "./Icon";
 import { List } from "./List";
 
 /* Living documentation for the design system, served at #/styleguide.
@@ -18,6 +31,7 @@ const SURFACE_SWATCHES: Swatch[] = [
   { name: "Surface raised", token: "--surface-raised" },
   { name: "Surface sunken", token: "--surface-sunken" },
   { name: "Surface inset", token: "--surface-inset" },
+  { name: "Surface inset strong", token: "--surface-inset-strong" },
 ];
 
 const TEXT_SWATCHES: Swatch[] = [
@@ -286,12 +300,15 @@ export function StyleGuide() {
 
         <div className="sg-row">
           <button type="button" className="btn btn--lg btn--primary">
+            <Icon as={Mic} size={18} />
             Start conversation
           </button>
           <button type="button" className="btn btn--lg btn--danger">
+            <Icon as={PhoneOff} size={18} />
             End conversation
           </button>
           <button type="button" className="btn btn--lg btn--primary" disabled>
+            <Icon as={LoaderCircle} size={18} className="spinner" />
             Connecting…
           </button>
         </div>
@@ -335,10 +352,22 @@ export function StyleGuide() {
 
         <div className="sg-row">
           <span className="pill">Incomplete</span>
-          <span className="pill pill--accent">In progress</span>
-          <span className="pill pill--success">Complete</span>
-          <span className="pill pill--danger">Escalated</span>
-          <span className="pill pill--warning">Reschedule</span>
+          <span className="pill pill--accent">
+            <Icon as={LoaderCircle} size={13} className="spinner" />
+            In progress
+          </span>
+          <span className="pill pill--success">
+            <Icon as={Check} size={13} />
+            Complete
+          </span>
+          <span className="pill pill--danger">
+            <Icon as={TriangleAlert} size={13} />
+            Escalated
+          </span>
+          <span className="pill pill--warning">
+            <Icon as={CalendarClock} size={13} />
+            Reschedule
+          </span>
         </div>
       </section>
 
@@ -349,24 +378,28 @@ export function StyleGuide() {
           <p>
             Danger is a saturated field; warning is a tint. That is a difference in kind, not
             degree, which is what keeps the two apart at a glance — you do not have to read the
-            copy to know which one is the emergency.
+            copy to know which one is the emergency. The glyph says the same thing a second way,
+            for anyone the fill does not reach.
           </p>
         </header>
 
         <div className="banner-stack">
           <div className="banner banner--danger">
+            <Icon as={TriangleAlert} size={18} className="banner__icon" />
             <span>
               <strong>Seek emergency care now.</strong> Sudden severe headache described as the worst
               of the patient's life. If this is a medical emergency, call 911.
             </span>
           </div>
           <div className="banner banner--warning">
+            <Icon as={CalendarClock} size={18} className="banner__icon" />
             <span>
               <strong>Reschedule requested.</strong> The patient asked to be called back another
               time.
             </span>
           </div>
           <div className="banner banner--error">
+            <Icon as={CircleAlert} size={18} className="banner__icon" />
             <span>Microphone permission was denied. Check your browser settings and try again.</span>
           </div>
         </div>
