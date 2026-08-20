@@ -128,12 +128,16 @@
   --space-20: 5rem;
 
   /* ---------------------------------------------------------------- RADIUS */
-  --radius-xs: 6px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 28px;
+  /* Square by design. The scale is kept so shapes stay nameable, but every
+     step is 0 — corners are a place where softness reads as consumer app, and
+     this is a clinical surface. --radius-full survives for genuinely round
+     things (scrollbar thumbs, status dots), not for chrome. */
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
   --radius-full: 999px;
 
   /* ---------------------------------------------------------------- LAYOUT */
@@ -141,12 +145,32 @@
   --shell-width: 1120px;
 
   /* ---------------------------------------------------------------- MOTION
-     One easing curve for everything that moves, so the app has a single feel. */
+     One easing curve for everything that moves, so the app has a single feel.
+
+     Motion in this app reports state; it never decorates. Every animation below
+     is either (a) an element entering, so a streaming view does not twitch, or
+     (b) a live state that has no static equivalent — the two pulsing dots. If
+     you are reaching for a third category, you probably want a token instead.
+
+     styles/base.css ends with a prefers-reduced-motion block that flattens all
+     of this with !important. That is the safety net, not the design: every
+     entry animation here ends at the element's natural resting state, so
+     snapping it to 0.01ms leaves the layout correct rather than half-applied. */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --duration-fast: 120ms;
   --duration-base: 200ms;
   --duration-slow: 400ms;
+  /* One-shot only, and only for the intake capture flash. It is long because it
+     is a *decay* the patient reads after the fact ("that was just recorded"),
+     not a transition they wait on — nothing is blocked while it runs. */
+  --duration-flash: 900ms;
+
+  /* Entry offsets. Kept tiny on purpose: a turn landing in a scrolling
+     transcript should settle, not fly. Anything past ~6px starts to read as
+     the list re-laying itself out. */
+  --enter-rise: 4px;
+  --enter-shift: 6px;
 
   /* ------------------------------------------------------- SEMANTIC — LIGHT */
   color-scheme: light;
@@ -159,6 +183,13 @@
   --surface-raised: var(--slate-0);
   --surface-sunken: var(--slate-100);
   --surface-inset: rgba(15, 23, 42, 0.04);
+  /* One step deeper than --surface-inset, for a hover on something already
+     sitting on an inset fill. It exists because neither --surface-sunken nor
+     --surface-raised moves the same direction in both schemes: sunken is a
+     near-black in dark and raised is pure white in light, so either one makes
+     the hover vanish or invert depending on the scheme. A second helping of the
+     same translucent overlay deepens by the same relative amount in both. */
+  --surface-inset-strong: rgba(15, 23, 42, 0.07);
 
   /* Text. Four steps. Every one clears WCAG AA (4.5:1) against the worst-case
      background in this scheme, which is --surface-sunken, not --bg. */
@@ -237,72 +268,76 @@
 /* ============================== DARK SCHEME ==============================
    Only semantic tokens are re-pointed. The one structural difference is
    elevation: a cast shadow on near-black reads as nothing, so lift moves to a
-   1px top highlight instead. */
+   1px top highlight instead.
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
+   Currently OPT-IN, not automatic: the app renders light regardless of the OS
+   setting, and this block only applies to <html data-theme="dark">. To follow
+   the OS preference again, wrap it back in @media (prefers-color-scheme: dark)
+   and restore <meta name="color-scheme" content="light dark"> in index.html. */
 
-    --bg: var(--slate-950);
-    --surface: var(--slate-900);
-    --surface-raised: var(--slate-800);
-    --surface-sunken: var(--slate-980);
-    --surface-inset: rgba(255, 255, 255, 0.04);
+:root[data-theme="dark"] {
+  color-scheme: dark;
 
-    /* Measured against --surface-raised (#1e293b), which is the worst case
-       here — light text on the lightest surface is the tighter pairing. */
-    --text-primary: var(--slate-50); /* 14.0:1 on raised */
-    --text-secondary: var(--slate-300); /*  9.9:1 on raised */
-    --text-tertiary: var(--slate-450); /*  6.8:1 on raised */
-    --text-faint: var(--slate-400); /*  5.7:1 on raised */
-    --text-inverted: var(--slate-950);
+  --bg: var(--slate-950);
+  --surface: var(--slate-900);
+  --surface-raised: var(--slate-800);
+  --surface-sunken: var(--slate-980);
+  --surface-inset: rgba(255, 255, 255, 0.04);
+  --surface-inset-strong: rgba(255, 255, 255, 0.08);
 
-    --border: rgba(255, 255, 255, 0.1);
-    --border-strong: rgba(255, 255, 255, 0.19);
-    --border-faint: rgba(255, 255, 255, 0.06);
+  /* Measured against --surface-raised (#1e293b), which is the worst case
+     here — light text on the lightest surface is the tighter pairing. */
+  --text-primary: var(--slate-50); /* 14.0:1 on raised */
+  --text-secondary: var(--slate-300); /*  9.9:1 on raised */
+  --text-tertiary: var(--slate-450); /*  6.8:1 on raised */
+  --text-faint: var(--slate-400); /*  5.7:1 on raised */
+  --text-inverted: var(--slate-950);
 
-    /* Saturated mid-tones go muddy on dark surfaces, so the accent lightens by
-       three steps — and that flips the label on an accent fill from white to
-       near-black, which is what --accent-contrast is for. */
-    --accent: var(--sky-400);
-    --accent-hover: var(--sky-300);
-    --accent-text: var(--sky-300); /* 10.7:1 on --surface */
-    --accent-soft: rgba(56, 189, 248, 0.16);
-    --accent-border: rgba(56, 189, 248, 0.38);
-    --accent-contrast: var(--slate-950); /* 9.4:1 on --accent */
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.19);
+  --border-faint: rgba(255, 255, 255, 0.06);
 
-    --danger: var(--red-500);
-    --danger-hover: var(--red-400);
-    --danger-text: var(--red-400); /* 5.3:1 on --danger-soft */
-    --danger-soft: rgba(248, 113, 113, 0.14);
-    --danger-border: rgba(248, 113, 113, 0.34);
-    --danger-contrast: #ffffff;
-    /* --danger-fill is NOT re-pointed. --danger lightens to red-500 for dots,
-       borders and text, but white on red-500 is 3.76:1 — and the surface that
-       says "call 911" does not get to fail AA because it looked better on a
-       dark page. The emergency banner and the End-conversation button read
-       from --danger-fill for exactly this reason. */
+  /* Saturated mid-tones go muddy on dark surfaces, so the accent lightens by
+     three steps — and that flips the label on an accent fill from white to
+     near-black, which is what --accent-contrast is for. */
+  --accent: var(--sky-400);
+  --accent-hover: var(--sky-300);
+  --accent-text: var(--sky-300); /* 10.7:1 on --surface */
+  --accent-soft: rgba(56, 189, 248, 0.16);
+  --accent-border: rgba(56, 189, 248, 0.38);
+  --accent-contrast: var(--slate-950); /* 9.4:1 on --accent */
 
-    --warning: var(--amber-400);
-    --warning-text: var(--amber-400); /* 8.1:1 on --warning-soft */
-    --warning-soft: rgba(251, 191, 36, 0.14);
-    --warning-border: rgba(251, 191, 36, 0.34);
+  --danger: var(--red-500);
+  --danger-hover: var(--red-400);
+  --danger-text: var(--red-400); /* 5.3:1 on --danger-soft */
+  --danger-soft: rgba(248, 113, 113, 0.14);
+  --danger-border: rgba(248, 113, 113, 0.34);
+  --danger-contrast: #ffffff;
+  /* --danger-fill is NOT re-pointed. --danger lightens to red-500 for dots,
+     borders and text, but white on red-500 is 3.76:1 — and the surface that
+     says "call 911" does not get to fail AA because it looked better on a
+     dark page. The emergency banner and the End-conversation button read
+     from --danger-fill for exactly this reason. */
 
-    --success: var(--green-400);
-    --success-text: var(--green-400); /* 7.9:1 on --success-soft */
-    --success-soft: rgba(74, 222, 128, 0.13);
-    --success-border: rgba(74, 222, 128, 0.32);
+  --warning: var(--amber-400);
+  --warning-text: var(--amber-400); /* 8.1:1 on --warning-soft */
+  --warning-soft: rgba(251, 191, 36, 0.14);
+  --warning-border: rgba(251, 191, 36, 0.34);
 
-    --focus-ring-offset: var(--bg);
+  --success: var(--green-400);
+  --success-text: var(--green-400); /* 7.9:1 on --success-soft */
+  --success-soft: rgba(74, 222, 128, 0.13);
+  --success-border: rgba(74, 222, 128, 0.32);
 
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35);
-    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.45), 0 8px 20px rgba(0, 0, 0, 0.45);
-    --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.45), 0 16px 40px rgba(0, 0, 0, 0.55);
-    --shadow-accent: 0 2px 10px rgba(0, 0, 0, 0.5),
-      0 6px 20px rgba(56, 189, 248, 0.16);
-    --shadow-danger: 0 2px 10px rgba(0, 0, 0, 0.5),
-      0 6px 20px rgba(239, 68, 68, 0.2);
-    --highlight-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  }
+  --focus-ring-offset: var(--bg);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.45), 0 8px 20px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.45), 0 16px 40px rgba(0, 0, 0, 0.55);
+  --shadow-accent: 0 2px 10px rgba(0, 0, 0, 0.5),
+    0 6px 20px rgba(56, 189, 248, 0.16);
+  --shadow-danger: 0 2px 10px rgba(0, 0, 0, 0.5),
+    0 6px 20px rgba(239, 68, 68, 0.2);
+  --highlight-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }

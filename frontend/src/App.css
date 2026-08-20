@@ -180,13 +180,27 @@
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr);
   column-gap: var(--space-3);
+  /* Trailing space belongs to the stage, not to the collapsing body — see the
+     note on .stage-body-wrap for why it cannot live inside. Transitioned on the
+     same curve and duration as the row collapse so the two move as one. */
+  padding-bottom: 0;
+  transition: padding-bottom var(--duration-base) var(--ease-out);
 }
 
-/* Both blocks are pinned to column 2. Without this, auto-placement drops the
-   body into the free cell under the rail — a 20px track — and every turn
-   collapses to one word per line. */
+.stage--open {
+  padding-bottom: var(--space-5);
+}
+
+/* Both direct children are pinned to column 2. Without this, auto-placement
+   drops the body into the free cell under the rail — a 20px track — and every
+   turn collapses to one word per line.
+
+   .stage-body is deliberately absent: it is a child of .stage-body-wrap, not of
+   .stage, and naming it here places it in an *implicit* second column of the
+   wrapper — which indents every turn and, worse, leaves the collapsed height
+   non-zero so a closed stage bleeds its content over the next one. */
 .stage-header,
-.stage-body {
+.stage-body-wrap {
   grid-column: 2;
 }
 
@@ -267,22 +281,40 @@
   }
 }
 
+/* The whole header is one button, so the whole header has to light up. It used
+   to advertise that with a single word changing colour, which is not a hit
+   target you can find by sweeping.
+
+   The padding/negative-margin pair is what makes the tint read as a row rather
+   than a box around the text: the element keeps its original visual position
+   (so the rail dot still lines up with the eyebrow) while its painted area
+   grows to cover the gutters. --space-2 of inline bleed clears the 12px column
+   gap without ever reaching the rail. */
 .stage-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: start;
   column-gap: var(--space-2);
-  width: 100%;
-  padding: 0 0 var(--space-3);
+  padding: var(--space-1) var(--space-2) var(--space-3);
+  margin: calc(var(--space-1) * -1) calc(var(--space-2) * -1) 0;
   background: none;
   border: none;
   text-align: left;
   cursor: pointer;
   border-radius: var(--radius-sm);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.stage-header:hover {
+  background-color: var(--surface-inset);
 }
 
 .stage-header:hover .stage-title {
   color: var(--accent-text);
+}
+
+.stage-header:hover .stage-chevron {
+  color: var(--text-secondary);
 }
 
 .stage-heading {
@@ -308,12 +340,20 @@
   transition: color var(--duration-fast) var(--ease-out);
 }
 
-/* Sized so its line box matches the status pill's height and the two sit on a
-   shared centre line. */
+/* Nudged to sit on the status pill's centre line: the pill measures ~26px
+   (16.2px line box + 4px padding + 1px border, doubled), so a 16px glyph needs
+   5px of the difference above it. This replaces a pair of ▾/▸ text glyphs that
+   were faking the same alignment with line-height and could not be transitioned
+   between — one icon that rotates is both better aligned and cheaper. */
 .stage-chevron {
-  font-size: var(--text-xs);
-  line-height: 2;
+  margin-top: 5px;
   color: var(--text-tertiary);
+  transition: transform var(--duration-base) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.stage--open .stage-chevron {
+  transform: rotate(90deg);
 }
 
 .stage-summary {
@@ -332,14 +372,45 @@
   color: var(--text-faint);
 }
 
+/* Collapse via grid-template-rows 0fr -> 1fr, which is the only way to animate
+   to a content-derived height without measuring it in JS. The wrapper owns the
+   animating track; the body owns the overflow clip. Both halves are required —
+   drop `min-height: 0` and the body refuses to shrink below its content.
+
+   The body carries NO padding, and that is load-bearing rather than tidiness.
+   A 0fr track is sized from its item's min-content contribution, and padding is
+   a floor the border box cannot shrink below however small the track goes — so
+   `padding-bottom: var(--space-5)` here left every collapsed stage 20px tall and
+   bleeding its first turn over the stage below it. The trailing space moved up
+   to .stage instead, where it is free to animate to zero.
+
+   The body stays mounted when collapsed (it used to unmount) so there is
+   something to animate, and is marked `inert` instead, which takes it out of
+   the accessibility tree AND out of the tab order. aria-hidden alone would do
+   only the first, leaving focus able to land inside a closed stage. */
+.stage-body-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--duration-base) var(--ease-out);
+}
+
+.stage--open .stage-body-wrap {
+  grid-template-rows: 1fr;
+}
+
 .stage-body {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding-bottom: var(--space-5);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .stage-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  animation: enter-rise var(--duration-base) var(--ease-out) both;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   border-left: 2px solid var(--danger);
@@ -347,6 +418,12 @@
   color: var(--text-primary);
   font-size: var(--text-sm);
   line-height: var(--leading-snug);
+}
+
+/* Nudged onto the cap height of the first line rather than its line box. */
+.stage-alert__icon {
+  margin-top: 2px;
+  color: var(--danger-text);
 }
 
 .stage-waiting {
@@ -371,20 +448,28 @@
   color: var(--text-primary);
 }
 
+/* Each turn enters from the side it is aligned to, so a message reads as
+   arriving from its speaker rather than the list growing underneath. This is
+   the one place motion is doing real work: turns land mid-scroll while the
+   panel is auto-scrolling, and without a settle they simply blink into
+   existence in a view that is already moving. */
 .turn--user {
   align-self: flex-end;
   background-color: var(--accent-soft);
   border-color: var(--accent-border);
+  animation: enter-from-right var(--duration-base) var(--ease-out) both;
 }
 
 .turn--assistant {
   align-self: flex-start;
   background-color: var(--surface-inset);
   border-color: var(--border-faint);
+  animation: enter-from-left var(--duration-base) var(--ease-out) both;
 }
 
 .turn--tool {
   align-self: center;
+  animation: enter-rise var(--duration-base) var(--ease-out) both;
   max-width: 100%;
   background-color: transparent;
   border-color: var(--border);
@@ -421,9 +506,13 @@
   margin: 0;
 }
 
+/* The care-team summary appears once, at the end, under a rule that was not
+   there a moment ago. Fading it in stops the whole panel from looking like it
+   jumped. */
 .intake-summary {
   padding-top: var(--space-5);
   border-top: 1px solid var(--border-faint);
+  animation: enter-rise var(--duration-slow) var(--ease-out) both;
 }
 
 .intake-summary h3 {
@@ -443,7 +532,7 @@
 .devlog {
   background-color: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   box-shadow: var(--shadow-xs), var(--highlight-inset);
 }
 
@@ -501,6 +590,15 @@
   border-radius: var(--radius-sm);
   border-left: 2px solid var(--border-strong);
   background-color: var(--surface-inset);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+/* Only the expandable rows respond — a coalesced stream row has nothing to
+   open, so lighting it up on hover would promise an interaction it does not
+   have. Scoped to :has() rather than a class so it stays true if the markup
+   changes which rows are <details>. */
+.dc-entry:has(> .dc-entry-header):hover {
+  background-color: var(--surface-inset-strong);
 }
 
 .dc-entry--out {
@@ -538,6 +636,9 @@
 }
 
 .dc-entry-direction {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   font-weight: var(--weight-semibold);
   color: var(--text-secondary);
 }

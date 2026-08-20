@@ -12,5 +12,8 @@
     "test": "npm test -w threep-backend",
     "dev:backend": "npm run dev -w threep-backend",
     "dev:frontend": "npm run dev -w frontend"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18"
   }
 }

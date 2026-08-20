@@ -179,7 +179,7 @@ button {
   min-height: var(--btn-height);
   padding: var(--btn-padding);
   border: 1px solid transparent;
-  border-radius: var(--radius-full);
+  border-radius: 0;
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   /* A hair of tracking only. The old 0.04em was compensating for a condensed
@@ -193,6 +193,13 @@ button {
     box-shadow var(--duration-base) var(--ease-out),
     transform var(--duration-fast) var(--ease-out),
     opacity var(--duration-fast) var(--ease-out);
+}
+
+/* The press already moved down 1px; hover now moves up 1px, so the button
+   travels a continuous 2px arc from rest to pressed rather than snapping back
+   through its resting position halfway through the interaction. */
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
 }
 
 .btn:active:not(:disabled) {
@@ -273,7 +280,7 @@ button {
   min-width: 0;
   background-color: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   box-shadow: var(--shadow-sm), var(--highlight-inset);
 }
 
@@ -304,13 +311,20 @@ button {
   gap: var(--space-2);
   padding: 0.25rem var(--space-3);
   border: 1px solid var(--border);
-  border-radius: var(--radius-full);
+  border-radius: 0;
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   line-height: var(--leading-snug);
   letter-spacing: var(--tracking-wide);
   color: var(--pill-color);
   white-space: nowrap;
+  /* The connection pill changes variant mid-session (connecting -> live ->
+     ended). Without this the whole chip re-colours in one frame, which reads as
+     a flicker rather than a state change. --pill-color is inherited by the dot
+     through currentColor, so the dot rides along for free. */
+  transition: color var(--duration-base) var(--ease-out),
+    background-color var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out);
 }
 
 .pill--accent {
@@ -371,12 +385,26 @@ button {
 
 .banner {
   display: flex;
+  align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   line-height: var(--leading-snug);
+  /* --duration-fast, not --duration-base: a banner is an interruption. The
+     animation exists so it does not appear out of nowhere mid-scroll, and that
+     is all it is allowed to cost. An alert that eases in gracefully is an alert
+     that arrived late. */
+  animation: enter-drop var(--duration-fast) var(--ease-out) both;
+}
+
+/* Icons carry the banner's meaning independently of its fill, so an escalation
+   is distinguishable from a warning without relying on colour alone. Nudged
+   down to sit on the first line's cap height rather than its line box. */
+.banner__icon {
+  flex: none;
+  margin-top: 1px;
 }
 
 .banner strong {
@@ -404,10 +432,15 @@ button {
 /* ================================================================== FIELDS
    Label-over-value pairs, used by the intake notes panel. */
 
+/* Intake rows appear one at a time as the agent captures answers, so each one
+   is a discrete event worth marking. The row fades in; the value flashes once
+   and decays. That flash is the app's only "we heard that" acknowledgement --
+   there is no other confirmation that an answer landed. */
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
+  animation: enter-rise var(--duration-base) var(--ease-out) both;
 }
 
 .field__label {
@@ -420,12 +453,102 @@ button {
 
 .field__value {
   margin: 0;
+  /* Padded and negatively offset so the flash reads as a highlight around the
+     text rather than a box appearing beside it. Radius matches the tint. */
+  margin-inline: calc(var(--space-2) * -1);
+  padding: 0.125rem var(--space-2);
+  border-radius: var(--radius-xs);
   color: var(--text-primary);
   font-size: var(--text-sm);
   line-height: var(--leading-snug);
+  animation: capture-flash var(--duration-flash) var(--ease-out) both;
 }
 
-/* ================================================================== MOTION */
+/* =================================================================== ICONS
+   Lucide, rendered inline. Two rules only:
+
+   1. currentColor, always. An icon never carries its own colour -- it inherits
+      from whatever names the role (--pill-color, --stage-accent, a banner's
+      contrast token), which is what keeps the sprite honest across both
+      schemes without a single dark-mode override.
+   2. strokeWidth 1.75, set at the call site. Lucide's default of 2 reads heavy
+      beside 1px hairline borders; 1.5 disappears at 14px. This is the value
+      that matches --border in both schemes.
+
+   Every icon in this app is decorative in the accessibility sense -- the label
+   beside it already says the same thing -- so they are all aria-hidden. If you
+   ever add one that is the ONLY carrier of its meaning, give it a label
+   instead of copying this pattern. */
+
+.icon {
+  flex: none;
+  /* Icons sit inline beside type constantly (pills, buttons, stage headers).
+     Without this they sit on the text baseline and push the line box down. */
+  vertical-align: -0.125em;
+}
+
+/* The one indeterminate spinner in the app: the connecting state, which is the
+   only moment where the user waits on something with no progress to report. */
+.spinner {
+  animation: spin 900ms linear infinite;
+}
+
+/* ================================================================== MOTION
+   Shared entry keyframes. All four are `from`-only, so the browser fills the
+   `to` state from the element's own computed style -- an element that enters
+   always lands exactly where CSS already said it belongs, and nothing here can
+   leave a stuck transform behind if it is interrupted. That property is also
+   what makes the reduced-motion override below safe. */
+
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--enter-rise));
+  }
+}
+
+/* Banners and other things that arrive from above the content they interrupt. */
+@keyframes enter-drop {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--enter-shift) * -1));
+  }
+}
+
+/* Turns enter from the side they are aligned to, so a message reads as coming
+   from its speaker rather than the list growing. */
+@keyframes enter-from-left {
+  from {
+    opacity: 0;
+    transform: translate3d(calc(var(--enter-shift) * -1), var(--enter-rise), 0);
+  }
+}
+
+@keyframes enter-from-right {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--enter-shift), var(--enter-rise), 0);
+  }
+}
+
+/* Held at full tint for the first fifth so the eye catches it even if the
+   answer lands off-screen-adjacent, then decays. Ends fully transparent, which
+   is the value .field__value has at rest. */
+@keyframes capture-flash {
+  0%,
+  20% {
+    background-color: var(--accent-soft);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,
